@@ -1,0 +1,770 @@
+/******************************************************************************/
+/**
+ *  @file   cmfwk_std.h
+ *  @brief  Userland Definition
+ */
+/*
+ *  Copyright 2015 Socionext Inc.
+ ******************************************************************************/
+#ifndef __CMFWK_STD_H__
+#define __CMFWK_STD_H__
+
+/**************************************************************** 
+ *  include
+ ****************************************************************/
+#include <stdio.h>
+
+
+/******************************************************************** 
+ *  Debug Flag
+ ********************************************************************/
+//#define DEBUG
+
+
+/******************************************************************** 
+ *  Debug print
+ ********************************************************************/
+#ifdef DEBUG
+#define LOGV(...)   printf(__VA_ARGS__)
+#else
+#define LOGV(...)
+#endif
+#define LOGI(...)   printf(__VA_ARGS__)
+#define LOGE(...)   printf("[ERROR]" __VA_ARGS__)
+
+/******************************************************************** 
+ *			Magic code
+ ********************************************************************/
+#define D_CPU_IF_MCODE_COMMAND_REQ		(0x5555AAAA)
+#define D_CPU_IF_MCODE_COOMNAD_ACK		(0x6666BBBB)
+#define D_CPU_IF_MCODE_EVENT_NOTIFY		(0x7777CCCC)
+#define D_CPU_IF_MCODE_INFO_NOTIFY		(0x8888DDDD)
+#define D_CPU_IF_MCODE_STREAM_SEND		(0x9999EEEE)
+#define D_CPU_IF_MCODE_STREAM_RELESE		(0xAAAAFFFF)
+#define D_CPU_IF_MCODE_GET_FROM_BF		(0xBBBB0000)
+
+/******************************************************************** 
+ *			Format version
+ ********************************************************************/
+  #define D_CPU_IF_COM_FORMAT_VERSION		(0x00000001)
+
+/******************************************************************** 
+ *			Macro
+ ********************************************************************/
+#define D_CPU_IF_SEND_SYNC			(1)
+#define D_CPU_IF_SEND_ASYNC			(0)
+
+/******************************************************************** 
+ *  Common define definition
+ ********************************************************************/
+typedef enum FJ_ERR_CODE {
+	/* Common part */
+	FJ_ERR_OK                       = 0x0000,       /**< OK */
+	FJ_ERR_NG                       = 0x0001,       /**< Error */
+	FJ_ERR_NG_INPUT_PARAM           = 0x0002,       /**< Input Parameter error */
+	FJ_ERR_NG_EXCEPTION             = 0x0003,       /**< Exception occurred */
+	FJ_ERR_NG_CONDITION             = 0x0004,       /**< Condition error */
+	FJ_ERR_NG_COMMUNICATON          = 0x0005,       /**< Communication error */
+	FJ_ERR_NG_TMOUT                 = 0x0006,       /**< Timeout error */
+	FJ_ERR_NO_SUPPORT               = 0x0007,       /**< API cannot be supported on M-8M proto */
+} FJ_ERR_CODE;
+
+/*----------------------------------------------------------------------*/
+/* Enumeration								*/
+/*----------------------------------------------------------------------*/
+typedef enum {
+	E_CPU_IF_CH_CMD_REQ = 0,		/* Linux -> RTOS  : Command Request */
+	E_CPU_IF_CH_CMD_ACK,			/* RTOS  -> Linux : Command Response */
+	E_CPU_IF_CH_VFS_REQ,			/* Linux -> RTOS  : IPCUFS Request */
+	E_CPU_IF_CH_VFS_ACK,			/* RTOS  -> Linux : IPCUFS Response */
+	E_CPU_IF_CH_EVENT,			/* RTOS  -> Linux : RTOS Event Notify */
+	E_CPU_IF_CH_INFO,			/* Linux -> RTOS  : Linux Information Notify */
+	E_CPU_IF_CH_STR_SEND,			/* RTOS  -> Linux : Stream Send */
+	E_CPU_IF_CH_STR_REL,			/* Linux -> RTOS  : Stream Release */
+	E_CPU_IF_CH_MAX				/* Stopper */
+} E_CPU_IF_CH_INDEX;
+
+typedef enum {
+	E_CPU_IF_BOARD_TYPE_MASTER = 1,		/* Master */
+	E_CPU_IF_BOARD_TYPE_SLAVE_1,		/* Slave-1 */
+	E_CPU_IF_BOARD_TYPE_SLAVE_2,		/* Slave-2 */
+} E_CPU_IF_BOARD_TYPE;
+
+typedef enum {
+	E_CPU_IF_VSTRM_TYPE_ES = 1,		/* ES */
+	E_CPU_IF_VSTRM_TYPE_TS,			/* TS */
+} E_CPU_IF_VSTRM_TYPE;
+
+//Command Set
+typedef enum {
+	E_CAM_IF_COM_INIT_SETTING		= 0x00000100,
+	E_CAM_IF_COM_SOFTWARE_RESET		= 0x00000200,
+	E_CAM_IF_COM_SET_IMG_CFG		= 0x00010100,
+	E_CAM_IF_COM_SET_AUDIO_CFG		= 0x00010200,
+	E_CAM_IF_COM_SET_VIDEO_CFG		= 0x00010300,
+	E_CAM_IF_COM_SET_SINGLE_CAP_CFG		= 0x00010400,
+	E_CAM_IF_COM_SET_BURST_CAP_CFG		= 0x00010500,
+	E_CAM_IF_COM_SET_AEB_CAP_CFG		= 0x00010600,
+	E_CAM_IF_COM_SET_TIME_LAPSE_IMAGE_CFG	= 0x00010700,
+	E_CAM_IF_COM_SET_TIME_LAPSE_VIDEO_CFG	= 0x00010800,
+	E_CAM_IF_COM_SET_ISP_OPT_VIDEO		= 0x00010900,
+	E_CAM_IF_COM_SET_FACE_DETECTION_CFG	= 0x00010A00,
+	E_CAM_IF_COM_SET_YUV_CAP_CFG		= 0x00010B00,
+	E_CAM_IF_COM_SET_WRP_PARAM_DUALCAM	= 0x00010C00,
+	E_CAM_IF_COM_SET_METADATA_SEND		= 0x00010D00,
+	E_CAM_IF_COM_SET_IMAGE_EFFECT_CFG	= 0x00010E00,
+	E_CAM_IF_COM_SET_MODE_CHANGE		= 0x00020100,
+	E_CAM_IF_COM_SET_BC_CAPTURE_STOP	= 0x00030100,
+	E_CAM_IF_COM_SET_PB_OPERATION		= 0x00030200,
+	E_CAM_IF_COM_SET_PIC_IN_VIDEO		= 0x00030300,
+	E_CAM_IF_COM_SET_START_FWUPDATE		= 0x00030400,
+	E_CAM_IF_COM_CHG_VIDEO_CONFIG		= 0x00030500,
+	E_CAM_IF_COM_FORMAT			= 0x00030600,
+	E_CAM_IF_COM_QUICK_CAPTURE		= 0x00030700,
+	E_CAM_IF_COM_DIGITAL_ZOOM		= 0x00030800,
+	E_CAM_IF_COM_CHG_STITCHING_TYPE		= 0x00030900,
+	E_CAM_IF_COM_DELETE_FILE		= 0x00030A00,
+	E_CAM_IF_COM_SET_PLAYBACK_IMAGE		= 0x00030B00,
+	E_CAM_IF_COM_PANORAMA			= 0x00030C00,
+	E_CAM_IF_COM_SET_CALIBRATION		= 0x00040100,
+	E_CAM_IF_COM_SET_SIMPLE_TOOL		= 0x00040200,
+	E_CAM_IF_COM_USER_DATA_UPDATE		= 0x00040400,
+
+	E_CAM_IF_COM_GET_IMG_CFG		= 0x80010100,
+	E_CAM_IF_COM_GET_AUDIO_CFG		= 0x80010200,
+	E_CAM_IF_COM_GET_VIDEO_CFG		= 0x80010300,
+	E_CAM_IF_COM_GET_SINGLE_CAP_CFG		= 0x80010400,
+	E_CAM_IF_COM_GET_BURST_CAP_CFG		= 0x80010500,
+	E_CAM_IF_COM_GET_AEB_CAP_CFG		= 0x80010600,
+	E_CAM_IF_COM_GET_TIME_LAPSE_IMAGE_CFG	= 0x80010700,
+	E_CAM_IF_COM_GET_TIME_LAPSE_VIDEO_CFG	= 0x80010800,
+	E_CAM_IF_COM_GET_ISP_OPT_VIDEO		= 0x80010900,
+	E_CAM_IF_COM_GET_FACE_DETECTION_CFG	= 0x80010A00,
+	E_CAM_IF_COM_GET_YUV_CAP_CFG		= 0x80010B00,
+	E_CAM_IF_COM_GET_WRP_PARAM_DUALCAM	= 0x80010C00,
+	E_CAM_IF_COM_GET_METADATA_SEND		= 0x80010D00,
+	E_CAM_IF_COM_GET_IMAGE_EFFECT_CFG	= 0x80010E00,
+	E_CAM_IF_COM_GET_CAMERA_MODE		= 0x80020100,
+	E_CAM_IF_COM_GET_HARDWARE_STATUS	= 0x80040100,
+	E_CAM_IF_COM_GET_AS_CONDITION		= 0x80050100,
+	E_CAM_IF_COM_GET_CAPINFO_STATUS		= 0x80060100,
+	E_CAM_IF_COM_GET_CAPA_INFO		= 0x80060200,
+
+	E_CAM_IF_COM_NOT_SUPPORT		= 0x00000000,
+} E_CAM_IF_COM_SET;
+
+//Stream
+typedef enum {
+	E_CAM_IF_COM_SET_STREAM_STR = 0x00010100,
+} E_CPU_IF_COMMAND_SET_STREAM;
+
+//Notify_Event
+typedef enum {
+	E_CAM_IF_COM_SET_NOTIFY_EVENT_STATUS_CHANGED	= 0x00010100,
+	E_CAM_IF_COM_SET_NOTIFY_EVENT_PROC_FINISH	= 0x00010200,
+	E_CAM_IF_COM_SET_NOTIFY_EVENT_PROC_ERROR	= 0x00010300,
+	E_CAM_IF_COM_SET_NOTIFY_EVENT_EDID_RECEIVED	= 0x00010400,
+	E_CAM_IF_COM_SET_NOTIFY_EVENT_PANO_UPDATE	= 0x00010500,
+	E_CAM_IF_COM_SET_NOTIFY_EVENT_TIME_LAPSE_COUNT	= 0x00010600,
+	E_CAM_IF_COM_SET_NOTIFY_EVENT_ISSUE_CMD	= 0x00010700,
+	E_CAM_IF_COM_SET_NOTIFY_EVENT_UVC_START = 0x00010800,
+	E_CAM_IF_COM_SET_NOTIFY_EVENT_UVC_STOP = 0x00010900,
+} E_CAM_IF_COM_SET_NOTIFY_EVENT;
+
+//Notify_Information
+typedef enum {
+	E_CAM_IF_COM_SET_NOTIFY_INFO_INFORMATION = 0x00010100,
+} E_CAM_IF_COM_SET_NOTIFY_INFO;
+
+
+//Command
+typedef enum {
+	//Initial Setting
+	E_CAM_IF_SUB_COM_FINISH_BOOT		= 0x00000100,
+	E_CAM_IF_SUB_COM_SENSOR_NUM		= 0x00000200,
+	E_CAM_IF_SUB_COM_CHECK_EXIST_APP_FILE	= 0x00000300,
+
+	//Software Reset
+	E_CAM_IF_SUB_COM_RESET			= 0x00000100,
+
+	//Image Configuration
+	E_CAM_IF_SUB_COM_EV			= 0x00000100,
+	E_CAM_IF_SUB_COM_WB			= 0x00000200,
+	E_CAM_IF_SUB_COM_COLOR			= 0x00000300,
+	E_CAM_IF_SUB_COM_CC_MATRIX		= 0x00000400,
+	E_CAM_IF_SUB_COM_SHARPNESS		= 0x00000500,
+	E_CAM_IF_SUB_COM_ISO			= 0x00000600,
+	E_CAM_IF_SUB_COM_EXPOSURE_TIME		= 0x00000700,
+	E_CAM_IF_SUB_COM_AE_METERING		= 0x00000800,
+	E_CAM_IF_SUB_COM_AE_COVERAGE_SPEED	= 0x00000900,
+	E_CAM_IF_SUB_COM_FLICKER		= 0X00000A00,
+	E_CAM_IF_SUB_COM_AE_LOCK		= 0X00000B00,
+	E_CAM_IF_SUB_COM_HISTOGRAM_OUT		= 0X00000C00,
+	E_CAM_IF_SUB_COM_EVP_TBL_NUM		= 0X00000D00,
+	E_CAM_IF_SUB_COM_SATURATION		= 0X00000E00,
+	E_CAM_IF_SUB_COM_CONTRAST		= 0X00000F00,
+	E_CAM_IF_SUB_COM_ADAPTIVE_AE		= 0X00001000,
+
+	//Audio Configuration
+	E_CAM_IF_SUB_COM_A_CODEC		= 0x00000100,
+	E_CAM_IF_SUB_COM_A_SAMPLE_RATE		= 0x00000200,
+	E_CAM_IF_SUB_COM_A_BIT_RATE		= 0x00000300,
+	E_CAM_IF_SUB_COM_A_CH_TYPE		= 0x00000400,
+	E_CAM_IF_SUB_COM_A_ENABLE		= 0x00000500,
+	E_CAM_IF_SUB_COM_A_MIC_SELECT		= 0x00000600,
+
+	//Video Capture Configuration
+	E_CAM_IF_SUB_COM_V_SIZE_FRAMERATE	= 0x00000100,
+	E_CAM_IF_SUB_COM_V_BIT_RATE		= 0x00000200,
+	E_CAM_IF_SUB_COM_V_GOP			= 0x00000300,
+	E_CAM_IF_SUB_COM_V_FORMAT		= 0x00000400,
+	E_CAM_IF_SUB_COM_V_MODE			= 0x00000500,
+	E_CAM_IF_SUB_COM_V_IMAGE_SIZE		= 0x00000600,
+	E_CAM_IF_SUB_COM_V_H264_PROFILE		= 0x00000700,
+	E_CAM_IF_SUB_COM_V_QUALITY		= 0x00000800,
+	E_CAM_IF_SUB_COM_V_SUB_STREAM_ENABLE	= 0x00000900,
+	E_CAM_IF_SUB_COM_V_VIDEO_STREAM_OUTPUT	= 0x00000A00,
+
+	//Image Capture Configuration
+	E_CAM_IF_SUB_COM_CAP_TYPE		= 0x00000100,
+	E_CAM_IF_SUB_COM_CAP_CHANNEL		= 0x00000200,
+	E_CAM_IF_SUB_COM_CAP_SIZE		= 0x00000300,
+	E_CAM_IF_SUB_COM_CAP_QUALITY		= 0x00000400,
+
+	//Burst Capture Configuration
+	E_CAM_IF_SUB_COM_BURST_CAP_CONDITION	= 0x00000100,
+
+	//AEB Capture Configuration
+	E_CAM_IF_SUB_COM_AEB_CONDITION		= 0x00000100,
+
+	//Time Lapse Image Configuration
+	E_CAM_IF_SUB_COM_CAP_TIME_LAPSE_INTERVAL = 0x00000100,
+
+	//Time Lapse Video Configuration
+	E_CAM_IF_SUB_COM_VIDEO_TIME_LAPSE_INTERVAL = 0x00000100,
+
+	//ISP Option for Video
+	E_CAM_IF_SUB_COM_FACE_DETECTION			= 0x00000100,
+	E_CAM_IF_SUB_COM_VIDEO_IMG_STAB			= 0x00000200,
+	E_CAM_IF_SUB_COM_VIDEO_HDR			= 0x00000300,
+	E_CAM_IF_SUB_COM_3DNR				= 0x00000400,
+	E_CAM_IF_SUB_COM_AUTO_HORIZONTAL_ADJUST		= 0x00000500,
+	E_CAM_IF_SUB_COM_AUTO_BACKLIGHT_COMPENSATION	= 0x00000600,
+	E_CAM_IF_SUB_COM_AUTO_DEFOG			= 0x00000700,
+	E_CAM_IF_SUB_COM_AUTO_OBJECT_DETECTION		= 0x00000800,
+	E_CAM_IF_SUB_COM_AUTO_PERSON_DETECTION		= 0x00000900,
+	E_CAM_IF_SUB_COM_AUTO_TAMPALING_ALERT		= 0x00000A00,
+
+	//Face detection Configuration
+	E_CAM_IF_SUB_COM_FRAME_SIZE		= 0x00000100,
+	E_CAM_IF_SUB_COM_FACE_COUNT		= 0x00000200,
+
+	//YUV Capture Configuration
+	E_CAM_IF_SUB_COM_YUV_CHANNEL		= 0x00000100,
+	E_CAM_IF_SUB_COM_BINNING		= 0x00000200,
+
+	//Warping parameter for Dual Camera
+	E_CAM_IF_SUB_COM_WRP_CROP_POS		= 0x00000100,
+	E_CAM_IF_SUB_COM_WRP_WRP_PARAM		= 0x00000200,
+	E_CAM_IF_SUB_COM_WRP_WRP_GRID_NODE	= 0x00000300,
+
+	//Metadata Send
+	E_CAM_IF_SUB_COM_STAT			= 0x00000100,
+	E_CAM_IF_SUB_COM_FD			= 0x00000200,
+
+	//Image Effect Configuration
+	E_CAM_IF_SUB_COM_REVERSE		= 0x00000100,
+
+	//Change Camera Mode
+	E_CAM_IF_SUB_COM_CHANGE_MODE		= 0x00000100,
+	E_CAM_IF_SUB_COM_FILE_PATH		= 0x00000200,
+	E_CAM_IF_SUB_COM_SET_STANDBY_STATE	= 0x00000300,
+
+	//Burst/Continuous Capture Stop
+	E_CAM_IF_SUB_COM_BC_CAPTURE_STOP	= 0x00000100,
+
+	//Playback Operation
+	E_CAM_IF_SUB_COM_PB_OPERATION		= 0x00000100,
+
+	//Picture In Video
+	E_CAM_IF_SUB_COM_PIC_IN_VIDEO		= 0x00000100,
+
+	//Start FWUpdate
+	E_CAM_IF_SUB_COM_START_FWUPDATE		= 0x00000100,
+
+	//Change Video Configuration
+	E_CAM_IF_SUB_COM_ST_CHG_BITRATE		= 0x00000100,
+
+	//Format
+	E_CAM_IF_SUB_COM_SD_CARD		= 0x00000100,
+
+	//Quick Capture
+	E_CAM_IF_SUB_COM_QUICK_CAPTURE		= 0x00000100,
+
+	//Digital Zoom
+	E_CAM_IF_SUB_COM_ZOOM_STEP		= 0x00000100,
+
+	//Change Stitching Type
+	E_CAM_IF_SUB_COM_CHG_STITCHING_TYPE	= 0x00000100,
+
+	//Delete
+	E_CAM_IF_SUB_COM_DELETE			= 0x00000100,
+
+	//Playback image
+	E_CAM_IF_SUB_COM_PB_IMAGES		= 0x00000100,
+
+	//Panorama
+	E_CAM_IF_SUB_COM_PANORAMA_START		= 0x00000100,
+	E_CAM_IF_SUB_COM_PANORAMA_STOP		= 0x00000200,
+
+	//Calibration
+	E_CAM_IF_SUB_COM_CALIBRATION		= 0x00000100,
+	E_CAM_IF_SUB_COM_CALIBRATION_FACTORY	= 0x00000200,
+
+	//Simple Tool
+	E_CAM_IF_SUB_COM_ST_UPDATE		= 0x00000100,
+	E_CAM_IF_SUB_COM_ST_GET_ADDRESS		= 0x00000200,
+	E_CAM_IF_SUB_COM_ST_SAVE_NAND		= 0x00000300,
+	E_CAM_IF_SUB_COM_ST_SAVE_SD		= 0x00000400,
+	E_CAM_IF_SUB_COM_ST_READ_SD		= 0x00000500,
+	E_CAM_IF_SUB_COM_ST_START		= 0x00000600,
+	E_CAM_IF_SUB_COM_ST_STOP		= 0x00000700,
+
+	//User Data Update
+	E_CAM_IF_SUB_COM_USERDATA_SAVE_TO_NF	= 0x00000100,
+	E_CAM_IF_SUB_COM_USERDATA_INIT		= 0x00000200,
+
+	//Camera Mode
+	E_CAM_IF_SUB_COM_CAMERA_MODE		= 0x00000100,
+
+	//Hardware status
+	E_CAM_IF_SUB_COM_HW_STAT_SD		= 0x00000100,
+	E_CAM_IF_SUB_COM_HW_STAT_HDMI		= 0x00000200,
+	E_CAM_IF_SUB_COM_HW_STAT_USB		= 0x00000300,
+	E_CAM_IF_SUB_COM_HW_STAT_TEMP		= 0x00000400,
+
+	//Actual Shooting Condition
+	E_CAM_IF_SUB_COM_AS_GAIN		= 0x00000100,
+	E_CAM_IF_SUB_COM_AS_ET			= 0x00000200,
+	E_CAM_IF_SUB_COM_AS_CT			= 0x00000300,
+	E_CAM_IF_SUB_COM_AS_WB			= 0x00000400,
+
+	//Get Capability Information status
+	E_CAM_IF_SUB_COM_CI_AVAILABILITY	= 0x00000100,
+
+	//Capability Information
+	E_CAM_IF_SUB_COM_CP_SENSOR_TYPE		= 0x00000100,
+	E_CAM_IF_SUB_COM_CP_STITCHING_TYPE	= 0x00000200,
+	E_CAM_IF_SUB_COM_CP_DOL_MODE		= 0x00000300,
+	E_CAM_IF_SUB_COM_CP_STREAM_INFO		= 0x00000400,
+	E_CAM_IF_SUB_COM_CP_BITRATE_INFO	= 0x00000500,
+	E_CAM_IF_SUB_COM_CP_GOP_INFO		= 0x00000600,
+	E_CAM_IF_SUB_COM_CP_IP_INFO		= 0x00000700,
+	E_CAM_IF_SUB_COM_CP_AUDIO_INFO		= 0x00000800,
+	E_CAM_IF_SUB_COM_CP_CAMERA_TERM_SUPPORT	= 0x00000900,
+	E_CAM_IF_SUB_COM_CP_PROC_UNIT_SUPPORT	= 0x00000A00,
+	E_CAM_IF_SUB_COM_CP_SPEC_FUNC_SUPPORT	= 0x00000B00,
+	E_CAM_IF_SUB_COM_CP_SCANNING_MODE	= 0x00000C00,
+	E_CAM_IF_SUB_COM_CP_AE			= 0x00000D00,
+	E_CAM_IF_SUB_COM_CP_EXPO_TIME		= 0x00000E00,
+	E_CAM_IF_SUB_COM_CP_FOCUS		= 0x00000F00,
+	E_CAM_IF_SUB_COM_CP_IRIS		= 0x00001000,
+	E_CAM_IF_SUB_COM_CP_ZOOM		= 0x00001100,
+	E_CAM_IF_SUB_COM_CP_PAN			= 0x00001200,
+	E_CAM_IF_SUB_COM_CP_TILT		= 0x00001300,
+	E_CAM_IF_SUB_COM_CP_ROLL		= 0x00001400,
+	E_CAM_IF_SUB_COM_CP_PRIVACY_MASK	= 0x00001500,
+	E_CAM_IF_SUB_COM_CP_BRIGHTNESS		= 0x00001600,
+	E_CAM_IF_SUB_COM_CP_CONTRAST		= 0x00001700,
+	E_CAM_IF_SUB_COM_CP_HUE			= 0x00001800,
+	E_CAM_IF_SUB_COM_CP_SATURATION		= 0x00001900,
+	E_CAM_IF_SUB_COM_CP_SHARPNESS		= 0x00001A00,
+	E_CAM_IF_SUB_COM_CP_GAMMA		= 0x00001B00,
+	E_CAM_IF_SUB_COM_CP_DIGI_MULTIPLIER	= 0x00001C00,
+	E_CAM_IF_SUB_COM_CP_WHITE_BALANCE	= 0x00001D00,
+	E_CAM_IF_SUB_COM_CP_BACKLIGHT		= 0x00001E00,
+	E_CAM_IF_SUB_COM_CP_GAIN		= 0x00001F00,
+	E_CAM_IF_SUB_COM_CP_POW_LINE_FREQ	= 0x00002000,
+	E_CAM_IF_SUB_COM_CP_ANA_VIDEO		= 0x00002100,
+	E_CAM_IF_SUB_COM_CP_TIME_LAPSE		= 0x00002200,
+	E_CAM_IF_SUB_COM_CP_OSD			= 0x00002300,
+	E_CAM_IF_SUB_COM_CP_STORAGE		= 0x00002400,
+
+	//Not Support
+	E_CAM_IF_SUB_COM_NOT_SUPPORT		= 0x00000000,
+} E_CAM_IF_SUB_COM;
+
+//Stream
+typedef enum {
+	//STREAM_STR
+	E_CAM_IF_SUB_COM_STREAM_VIDEO = 0x00000100,
+	E_CAM_IF_SUB_COM_STREAM_AUDIO = 0x00000200,
+} E_CAM_IF_SUB_COM_STREAM;
+
+//Notify_Event
+typedef enum {
+	//STATUS_CHANGED
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_HDMI_STATUS_CHANGED = 0x00000100,
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_SD_STATUS_CHANGED = 0x00000200,
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_BAD_BLOCK_EXCEEDED = 0x00000300,
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_SENSOR_STATUS_CHANGED = 0x00000400,
+
+	//PROC_FINISH
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_IMAGE_CAPTURE_FINISH = 0x00000100,
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_VIDEO_CAPTURE_FINISH = 0x00000200,
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_PLAY_FINISH = 0x00000300,
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_MOVIE_RESTORE_FINISH = 0x00000500,
+	
+	//PROC_ERROR
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_PREVIEW_WIFI_ERROR = 0x00000100,
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_IMAGE_CAPTURE_ERROR = 0x00000200,
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_VIDEO_CAPTURE_ERROR = 0x00000300,
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_PLAY_ERROR = 0x00000400,
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_MOVIE_RESTORE_ERROR = 0x00000500,
+
+	//EDID received
+	E_CAM_IF_SUB_COM_NOTIFY_EVENT_EDID_INFO = 0x00000100,
+} E_CAM_IF_SUB_COM_NOTIFY_EVENT;
+
+//Notify_Information
+typedef enum {
+	//INFORMATION
+	E_CAM_IF_SUB_COM_NOTIFY_INFO_SET_GPS = 0x00000100,
+	E_CAM_IF_SUB_COM_NOTIFY_INFO_SET_DATETIME = 0x00000200,
+	E_CAM_IF_SUB_COM_NOTIFY_INFO_SET_EXIFINFO = 0x00000300,
+} E_CAM_IF_SUB_COM_NOTIFY_INFO;
+
+
+//camera IF Command Respond Code
+typedef enum {
+	E_CAMERA_IF_RES_CODE_OK = 0,
+	E_CAMERA_IF_RES_CODE_ERROR,
+	E_CAMERA_IF_RES_CODE_NOTSUPPORT,
+} E_CAMERA_IF_RES_CODE;
+
+
+// Camera Mode
+typedef enum {
+	E_CAM_IF_PARAM_CAMERA_MODE_BOOT = 0,
+	E_CAM_IF_PARAM_CAMERA_MODE_IDLE,
+	E_CAM_IF_PARAM_CAMERA_MODE_PRE_VIEW,
+	E_CAM_IF_PARAM_CAMERA_MODE_SINGLE_CAP,
+	E_CAM_IF_PARAM_CAMERA_MODE_BURST_CAP,
+	E_CAM_IF_PARAM_CAMERA_MODE_TIME_LAPSE_IMG,
+	E_CAM_IF_PARAM_CAMERA_MODE_TIME_LAPSE_VIDEO,
+	E_CAM_IF_PARAM_CAMERA_MODE_VIDEO_CAP,
+	E_CAM_IF_PARAM_CAMERA_MODE_PLAYBACK,
+	E_CAM_IF_PARAM_CAMERA_MODE_USB,
+	E_CAM_IF_PARAM_CAMERA_MODE_MAX,
+} E_CAM_IF_PARAM_CAMERA_MODE;
+
+// Video Size&Frame
+typedef enum {
+ 	E_CPU_IF_COMMAND_VIDEO_SIZE_4K = 0,
+	E_CPU_IF_COMMAND_VIDEO_SIZE_FHD,
+	E_CPU_IF_COMMAND_VIDEO_SIZE_HD,
+} E_CPU_IF_COMMAND_VIDEO_SIZE;
+
+typedef enum {
+	E_CPU_IF_COMMAND_VIDEO_FRAME_24 = 0x18,
+	E_CPU_IF_COMMAND_VIDEO_FRAME_30 = 0x1E,
+	E_CPU_IF_COMMAND_VIDEO_FRAME_60 = 0x3C,
+	E_CPU_IF_COMMAND_VIDEO_FRAME_120 = 0x78,
+} E_CPU_IF_COMMAND_VIDEO_FRAME;
+
+
+//Capture Size&Frame
+typedef enum {
+	E_CPU_IF_COMMAND_CAPTURE_SIZE_12M = 0x0C,
+	E_CPU_IF_COMMAND_CAPTURE_SIZE_8M = 0x08,
+	E_CPU_IF_COMMAND_CAPTURE_SIZE_5M = 0x05,
+	E_CPU_IF_COMMAND_CAPTURE_SIZE_2M = 0x02,
+} E_CPU_IF_COMMAND_CAPTURE_SIZE;
+
+typedef enum {
+	E_CPU_IF_COMMAND_CAPTURE_FPS_24 = 0x18,	//Continuous
+	E_CPU_IF_COMMAND_CAPTURE_FPS_15 = 0x0F,
+	E_CPU_IF_COMMAND_CAPTURE_FPS_10 = 0x0A,
+	E_CPU_IF_COMMAND_CAPTURE_FPS_5 = 0x05,
+} E_CPU_IF_COMMAND_CAPTURE_FPS;
+
+
+typedef enum {
+	E_CPU_IF_COMMAND_REMOVED = 0,
+	E_CPU_IF_COMMAND_INSERTED,
+} E_CPU_IF_COMMAND_CONNECT;
+
+
+typedef enum {
+	E_CPU_IF_COMMAND_GET_DCF_INFO_JPG = 1,
+	E_CPU_IF_COMMAND_GET_DCF_INFO_RAW,
+	E_CPU_IF_COMMAND_GET_DCF_INFO_MOVIE,
+} E_CPU_IF_COMMAND_GET_DCF;
+
+/*----------------------------------------------------------------------*/
+/* Structure								*/
+/*----------------------------------------------------------------------*/
+//Common
+typedef struct {
+	ULONG	magic_code;
+	ULONG	format_version;
+	ULONG	cmd_set;
+	ULONG	cmd;
+	ULONG	param[(D_COM_IPCU_MSG_SIZE_MAX - 16) / sizeof(ULONG)];
+} T_CPUCMD_MSG;
+
+typedef struct {
+	ULONG	magic_code;
+	ULONG	format_version;
+	ULONG	cmd_set;
+	ULONG	cmd;
+} T_CPUCMD_HEADER;
+
+//Command
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	ULONG		param1;
+	ULONG		param2;
+	ULONG		param3;
+	ULONG		param4;
+	ULONG		dec_pos;
+	int		exp_time;
+} T_CPUCMD_COMMAND_REQUEST;
+
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	ULONG		ret1;
+	ULONG		ret2;
+	ULONG		ret3;
+	ULONG		ret4;
+	ULONG		dec_pos;
+	int		exp_time;
+} T_CPUCMD_COMMAND_ACK;
+
+//Stream
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	//ULONG	board;
+	ULONG	stype;
+	ULONG	area_index;
+	ULONG	sample_size;
+	ULONG	sample_address;
+	ULONG	stream_id;
+	ULONG	stream_end_flg;
+	ULONG	sample_type;
+	ULONG	sample_proc;
+	ULONG	frame_of_GOP;
+	ULONG	VBV_buffer;
+	ULONG	nal_unit_num;
+	ULONG	nal_unit_size[8];
+	ULONG	bitrate;
+	ULONG	ave_bitrate;
+	ULONG	width;
+	ULONG	lines;
+	ULONG	cpb_over_flag;
+	ULONG	stream_buffer0_limit;
+	ULONG	stream_buffer1_limit;
+	LLONG	sample_pts;
+	LLONG	sample_dts;
+	ULLONG	stream_serial_num;
+	ULLONG	frame_no;
+	ULONG	rsv_ch_0;
+	ULONG	rsv_ch_1;
+} T_CPUCMD_VIDEO_STREAM;
+
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	//ULONG	board;
+	ULONG	stype;
+	ULONG	area_index;
+	ULONG	sample_size;
+	ULONG	sample_address;
+	ULONG	stream_id;
+	ULONG	stream_end_flg;
+	ULONG	ch_type;
+	//ULONG	frame_length;
+	ULONG	sample;
+	ULONG	sampling_freq;
+	ULONG	bit_rate;
+	//ULONG	sample_pts;
+	ULONG	rsv_ul_1[16];
+	LLONG	rsv_ll_0;
+	ULLONG	time_stamp;
+	ULLONG	rsv_ull_0[2];
+	CHAR	num_remain_area;
+	CHAR	stream_format;
+	CHAR	count_reset;
+	CHAR	rsv_ch_0[1];
+	//ULLONG	rsv_ll_1;
+} T_CPUCMD_AUDIO_STREAM;
+
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	ULONG	board;
+	ULONG	stype;
+	ULONG	area_index;
+	ULONG	sample_size;
+	ULONG	sample_address;
+	ULONG	stream_id;
+	ULONG	stream_end_flg;
+	ULONG	rsv_ul_0[25];
+} T_CPUCMD_MOV_STREAM;
+
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	ULONG	board;
+	ULONG	stype;
+	ULONG	area_index;
+	ULONG	sample_size;
+	ULONG	sample_address;
+	ULONG	stream_id;
+	ULONG	stream_end_flg;
+	ULONG	width;
+	ULONG	lines;
+	ULONG	format;
+	ULONG	rsv_ul_0[22];
+} T_CPUCMD_JPG_STREAM;  
+
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	ULONG	board;
+	ULONG	stype;
+	UINT8	stream_end_flag;
+	UINT8	stss;
+	UINT32	stream_size;
+	UINT32	stream_address;	
+	ULLONG	pts;
+	ULLONG	dts;
+	USHORT	width;
+	USHORT	height;
+	UINT32	nal_unit_num;
+	ULONG	nal_unit_size[8];
+	ULLONG	stream_serial_num;
+	USHORT	counter_in_GOP;
+	ULONG	rsv_ch_0;
+	ULONG	rsv_ch_1;
+} T_CPUCMD_SPVIDEO_STREAM;
+
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	ULONG	board;
+	ULONG	stype;
+	ULONG	sample_size;
+	ULONG	sample_address;
+	ULONG	stream_end_flg;
+	ULONG	ch_type;
+	ULONG	sampling_freq;
+	ULONG	bit_rate;
+	ULONG	rsv_ul_1[8];
+	LLONG	rsv_ll_0;
+	ULLONG	time_stamp;
+	ULLONG	rsv_ull_0[2];
+	ULONG	stream_format;
+	ULLONG	rsv_ll_1;
+} T_CPUCMD_SPAUDIO_STREAM;
+
+typedef union {
+	T_CPUCMD_HEADER		t_head;
+	T_CPUCMD_VIDEO_STREAM	vstream;
+	T_CPUCMD_AUDIO_STREAM	astream;
+	T_CPUCMD_MOV_STREAM	mstream;
+	T_CPUCMD_JPG_STREAM	jstream;
+	T_CPUCMD_SPVIDEO_STREAM	spvstream;
+	T_CPUCMD_SPAUDIO_STREAM	spastream;
+} T_CPUCMD_STREAM;
+
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	ULONG		stype;
+	ULONG		stream_end_flg;
+	ULONG		vstream_index;
+	ULONG		stream_id;
+} T_CPUCMD_VIDEO_STREAM_REL;
+
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	ULONG		board;
+	ULONG		stype;
+	ULONG		stream_end_flg;
+	ULONG		area_index;
+	ULONG		stream_id;
+} T_CPUCMD_JPG_STREAM_REL;
+
+typedef union {
+	T_CPUCMD_HEADER		t_head;
+	T_CPUCMD_VIDEO_STREAM_REL vstream_rel;
+	T_CPUCMD_JPG_STREAM_REL	jstream_rel;
+} T_CPUCMD_STREAM_REL;
+
+//Notify
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	ULONG		notify1;
+	ULONG		notify2;
+	ULONG		notify3;
+	ULONG		notify4;
+	char 		evt[320];
+} T_CPUCMD_NOTIFY_EVENT;
+
+typedef struct {
+	T_CPUCMD_HEADER	t_head;
+	ULONG		notify1;
+	ULONG		notify2;
+	ULONG		notify3;
+	ULONG		notify4;
+	ULONG		notify5;
+	ULONG		notify6;
+	ULONG		notify7;
+	ULONG		notify8;
+	ULONG		notify9;
+	ULONG		notify10;
+	ULONG		notify11;
+	ULONG		notify12;
+	ULONG		notify13;
+	ULONG		notify14;
+	ULONG		notify15;
+	ULONG		notify16;
+	ULONG		notify17;
+	ULONG		notify18;
+	ULONG		notify19;
+	ULONG		notify20;
+	ULONG		notify21;
+	ULONG		notify22;
+	ULONG		notify23;
+	ULONG		notify24;
+	ULONG		notify25;
+	ULONG		notify26;
+	ULONG		notify27;
+	ULONG		notify28;
+	ULONG		notify29;
+	ULONG		notify30;
+	ULONG		notify31;
+	ULONG		notify32;
+	ULONG		notify33;
+	ULONG		notify34;
+	ULONG		notify35;
+	ULONG		notify36;
+	ULONG		notify37;
+	ULONG		notify38;
+	ULONG		notify39;
+	ULONG		notify40;
+	ULONG		notify41;
+	ULONG		notify42;
+	ULONG		notify43;
+	ULONG		notify44;
+	ULONG		notify45;
+	ULONG		notify46;
+	ULONG		notify47;
+	ULONG		notify48;
+	ULONG		notify49;
+	ULONG		notify50;
+	ULONG		notify51;
+	ULONG		notify52;
+	ULONG		notify53;
+	ULONG		notify54;
+	ULONG		notify55;
+	ULONG		notify56;
+	ULONG		notify57;
+} T_CPUCMD_NOTIFY_INFO;
+
+#endif /* __CMFWK_STD_H__ */
