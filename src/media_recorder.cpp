@@ -20,8 +20,9 @@ static int get_timestamp(AVRational time_base){
     return av_rescale_q(time_stamp_ms, (AVRational){1, 1000}, time_base);
 }
 
-MediaRecorder::MediaRecorder(int stream_id, std::string file_path) : FrameConsumer(stream_id){
+MediaRecorder::MediaRecorder(std::string file_path){
     pthread_spin_init(&spinLock, PTHREAD_PROCESS_PRIVATE);
+    this->file_path = file_path;
 }
 
 MediaRecorder::~MediaRecorder() {
@@ -110,9 +111,9 @@ int MediaRecorder::start_record(AVCodecID video_codec_id, int width, int height)
     stream->codecpar->width = width;
     stream->codecpar->height = height;
 
-    AVStream *gps_stream = avformat_new_stream(this->f_ctx, NULL);
-    gps_stream->codecpar->codec_type = AVMEDIA_TYPE_DATA;
-    gps_stream->codecpar->codec_id = AV_CODEC_ID_TTF;
+    // AVStream *gps_stream = avformat_new_stream(this->f_ctx, NULL);
+    // gps_stream->codecpar->codec_type = AVMEDIA_TYPE_DATA;
+    // gps_stream->codecpar->codec_id = AV_CODEC_ID_TTF;
 
     ftime(&start_time);
 
@@ -122,7 +123,9 @@ int MediaRecorder::start_record(AVCodecID video_codec_id, int width, int height)
         std::cerr << "avformat_write_header failed" << std::endl;
         return -1;
     }
+    pthread_spin_lock(&spinLock);
     status = RECORD_STATUS_RECORDING;
+    pthread_spin_unlock(&spinLock);
     return ret;
 }
 
@@ -135,16 +138,10 @@ int MediaRecorder::stop_record() {
 
 void MediaRecorder::onFrameReceivedCallback(void* address, std::uint64_t size) {
     pthread_spin_lock(&spinLock);
+    printf("MediaRecorder::onFrameReceivedCallback\n");
     if(status == RECORD_STATUS_RECORDING){
+        printf("-");
         write_one_frame(static_cast<uint8_t *>(address), size);
     }
     pthread_spin_unlock(&spinLock);
-}
-
-int MediaRecorder::start() {
-    
-}
-
-int MediaRecorder::stop() {
-    
 }

@@ -15,10 +15,12 @@ extern "C"{
 static int cb(const struct cif_stream_send* p, void *d){
     StreamReceiver* receiver = (StreamReceiver *)d;
     int ret = 0;
-    for(FrameConsumer* consumer : receiver->consumers)
+    printf("stream_id = %d\n", p->stream_id);
+    for(StreamReceiver::StreamConsumer *c : receiver->consumerList)
     {
-        if (p->stream_id == consumer->streamId){
-            consumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size);
+        if (p->stream_id == c->streamId){
+            printf("p->stream_id == c->streamId\n", p->stream_id);
+            c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size);
         }
     }
     return ret;
@@ -32,14 +34,21 @@ StreamReceiver::~StreamReceiver() {
     
 }
 
-void StreamReceiver::addConsumer(FrameConsumer * consumer) {
-    consumers.push_back(consumer);
+StreamReceiver::StreamConsumer::StreamConsumer(int id, FrameConsumer* consumer){
+    streamId = id;
+    fConsumer = consumer;
+}
+
+void StreamReceiver::addConsumer(int id, FrameConsumer *consumer) {
+    consumerList.push_back(new StreamConsumer(id, consumer));
 }
 
 void StreamReceiver::removeConsumer(FrameConsumer *consumer) {
-    for (int i = 0; i < consumers.size(); i++) {
-        if (consumers[i] == consumer) {
-            consumers.erase(consumers.begin() + i);
+    for(int i = 0; i < consumerList.size(); i++)
+    {
+        if(consumerList.at(i)->fConsumer == consumer){
+            delete consumerList.at(i);
+            consumerList.erase(consumerList.begin() + i);
         }
     }
 }

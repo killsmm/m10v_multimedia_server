@@ -20,7 +20,7 @@ typedef enum {
 class MediaRecorder : public FrameConsumer {
 
     public:
-        MediaRecorder(int stream_id = 0, std::string file_path = "");
+        MediaRecorder(std::string file_path = "test.mp4");
         ~MediaRecorder();
         int init();
         int set_file_path(std::string file_path);

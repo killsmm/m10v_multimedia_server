@@ -4,6 +4,8 @@
 #include "jpeg_capture.h"
 #include <zmq.hpp>
 #include <string>
+#include "communicator.h"
+#include "json-c/json.h"
 
 extern "C" {
     #include <libavformat/avformat.h>
@@ -21,9 +23,16 @@ static bool app_abort = false;
 static char *file_name = NULL;
 static char *jpeg_path = NULL;
 
-static const char *PUBLISH_URL = "tcp://*:8888";
-static const char *PUBLISH_TOPIC = "jpeg: ";
+static std::string PUBLISH_URL = "tcp://*:8888";
+static std::string PUBLISH_TOPIC = "jpeg: ";
 
+// static std::string SUB_URL = "tcp://127.0.0.1:8888";
+static std::string SUB_URL = "tcp://192.168.137.11:8889";
+static std::string SUB_TOPIC = "command: ";
+
+static JpegCapture *jpeg_capture = NULL;
+static MediaRecorder *media_recorder = NULL;
+static Communicator *communicator = NULL;
 
 static void print_help() {
     std::cout << "this is help message" << std::endl;
@@ -33,18 +42,33 @@ static void signal_handler(int signal) {
     app_abort = true;
 }
 
-static void savedCallback(std::string path, void* data){
-    if(data != NULL){
-        zmq::socket_t *socket = static_cast<zmq::socket_t *>(data);
-        std::string msg_str = "";
-        msg_str.append(PUBLISH_TOPIC);
-        msg_str.append(path);
-        zmq::message_t msg(msg_str.c_str(), msg_str.length());
-        socket->send(msg, ZMQ_DONTWAIT);
-        std::cout << "publish msg " << msg_str << std::endl;
-
+static void command_handler(std::string cmd){
+    std::cout << "cmd: " + cmd << std::endl;
+    if (cmd.compare("start") == 0){
+        if(media_recorder != NULL){
+            media_recorder->start_record(AV_CODEC_ID_H265, 1920, 1080);
+        }
+    } else if (cmd.compare("stop") == 0){
+        if(media_recorder != NULL){
+            media_recorder->stop_record();
+            communicator->broadcast("record:", "over");
+        }
     }
+
+}
+
+static void savedCallback(std::string path, void* data){
     std::cout << "jpeg saved : " << path << std::endl;
+    if(data != NULL){
+        Communicator *comm = static_cast<Communicator *>(data);
+        comm->broadcast(PUBLISH_TOPIC, path);
+
+        // std::string msg_str = "";
+        // msg_str.append(PUBLISH_TOPIC);
+        // msg_str.append(path);
+        // zmq::message_t msg(msg_str.c_str(), msg_str.length());
+        // socket->send(msg, ZMQ_DONTWAIT);
+    }
 };
 
 int main(int argc, char** argv){
@@ -74,20 +98,21 @@ int main(int argc, char** argv){
     }
 
     StreamReceiver receiver;
+    communicator = new Communicator(PUBLISH_URL, SUB_URL);
 
-    zmq::context_t ctx;
-    zmq::socket_t publisher(ctx, zmq::socket_type::pub);
-    publisher.bind(PUBLISH_URL);
-
-    std::cout << "path = " << jpeg_path << std::endl;
 
     if (flag & (FLAG_DEBUG | FLAG_JPEG)) {
-        JpegCapture jpegCapture(16, std::string(jpeg_path));
-        receiver.addConsumer(&jpegCapture);
-        jpegCapture.setSavedCallback(savedCallback, (void*)&publisher);
-    }else if (flag & FLAG_VIDEO) {
-        MediaRecorder recorder;
-        receiver.addConsumer(&recorder);
+        std::cout << "path = " << jpeg_path << std::endl;
+        jpeg_capture = new JpegCapture(std::string(jpeg_path));
+        receiver.addConsumer(16, jpeg_capture);
+        jpeg_capture->setSavedCallback(savedCallback, static_cast<void *>(communicator));
+    }
+    
+    if (flag & FLAG_VIDEO) {
+        std::cout << "video path = " << file_name << std::endl;
+        media_recorder = new MediaRecorder(file_name);
+        media_recorder->init();
+        receiver.addConsumer(8, media_recorder);
     }
 
     receiver.start();
@@ -97,10 +122,18 @@ int main(int argc, char** argv){
     signal(SIGQUIT, signal_handler);
     signal(SIGABRT, signal_handler);
 
+    std::string received_msg;
     while (!app_abort)
     {
+        if(communicator->receive(SUB_TOPIC, received_msg)){
+            std::string command = received_msg.substr(SUB_TOPIC.size(), received_msg.size() - SUB_TOPIC.size());
+            std::cout << command << std::endl;
+            command_handler(command);
+        }
         sleep(1);
     }
+
+
     receiver.stop();
     std::cout << "receive stoped" << std::endl;
     return 0;

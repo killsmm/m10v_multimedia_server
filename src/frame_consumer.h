@@ -6,12 +6,9 @@ class FrameConsumer
 private:
     /* data */
 public:
-    FrameConsumer(int id);
+    FrameConsumer();
     ~FrameConsumer();
-    virtual int start() = 0;
-    virtual int stop() = 0;
     virtual void onFrameReceivedCallback (void* address, std::uint64_t size) = 0;
-    int streamId;
 };
 
 #endif
