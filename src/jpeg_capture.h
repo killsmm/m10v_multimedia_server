@@ -8,7 +8,7 @@ typedef void (*SavedCallback)(std::string path, void *data);
 class JpegCapture : public FrameConsumer
 {
 public:
-    JpegCapture(std::string path = "");
+    JpegCapture(std::string path = ".");
     ~JpegCapture();
     int start();
     int stop();

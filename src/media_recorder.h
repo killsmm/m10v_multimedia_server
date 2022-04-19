@@ -20,12 +20,10 @@ typedef enum {
 class MediaRecorder : public FrameConsumer {
 
     public:
-        MediaRecorder(std::string file_path = "test.mp4");
+        MediaRecorder(std::string path = ".");
         ~MediaRecorder();
         int init();
-        int set_file_path(std::string file_path);
-        std::string get_file_path();
-        int start_record(AVCodecID video_codec_id, int width, int height);
+        int start_record(AVCodecID video_codec_id, int width, int height, std::string file_name = "default.mp4"); 
         int stop_record();
         int write_one_frame(uint8_t *addr, unsigned int size);
         AVCodecContext *v_codec;
@@ -36,9 +34,9 @@ class MediaRecorder : public FrameConsumer {
         int stop();
     private:
         pthread_t record_thread;
-        std::string file_path;
+        std::string record_path;
         int record_thread_index;
-        RECORD_STATUS status;        
+        RECORD_STATUS recordStatus;        
         pthread_spinlock_t spinLock;
 };
 

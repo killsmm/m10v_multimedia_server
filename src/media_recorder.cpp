@@ -20,9 +20,10 @@ static int get_timestamp(AVRational time_base){
     return av_rescale_q(time_stamp_ms, (AVRational){1, 1000}, time_base);
 }
 
-MediaRecorder::MediaRecorder(std::string file_path){
+MediaRecorder::MediaRecorder(std::string path){
     pthread_spin_init(&spinLock, PTHREAD_PROCESS_PRIVATE);
-    this->file_path = file_path;
+    this->record_path = path;
+    av_register_all();
 }
 
 MediaRecorder::~MediaRecorder() {
@@ -49,52 +50,27 @@ int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
         return ret;
     }
 
-    av_init_packet(&this->packet);
-    uint8_t *data =  (uint8_t *)av_malloc(4);
-    data[0] = 0x2;
-    data[1] = 0x3;
-    data[2] = 0x4;
-    data[3] = 0x5;
-    ret = av_packet_from_data(&this->packet, data, 4);
-    if(ret != 0){
-        std::cout << "av packet data from data failed" << std::endl;
-        return -1;
-    }
-
-    this->packet.stream_index = this->f_ctx->streams[1]->index;
-    this->packet.pts = time_stamp;
-    this->packet.dts = time_stamp;
-
-    ret = av_write_frame(this->f_ctx, &this->packet);
-    av_packet_unref(&this->packet);
     return ret;
 }
 
 int MediaRecorder::init() {
+
+    return 0;
+}
+
+int MediaRecorder::start_record(AVCodecID video_codec_id, int width, int height, std::string file_name) {
     int ret = 0;
-    av_register_all();
-    ret = avformat_alloc_output_context2(&this->f_ctx, NULL, NULL, file_path.c_str());
+    std::string full_path = this->record_path + "/" + file_name;
+    std::cout << "full path:" + full_path << std::endl;
+    ret = avformat_alloc_output_context2(&this->f_ctx, NULL, NULL, full_path.c_str());
     if(ret != 0){
         std::cerr << "avformat_alloc_output_context2 ret = " << ret << std::endl;
         return ret;
     }
-    av_dump_format(this->f_ctx, 0, this->file_path.c_str(), 1);
+    av_dump_format(this->f_ctx, 0, full_path.c_str(), 1);
     std::cout << this->f_ctx->oformat->long_name << std::endl;
-    printf("register succeed\n");
-    return 0;
-}
 
-int MediaRecorder::set_file_path(std::string file_path) {
-    this->file_path = file_path;
-}
-
-std::string MediaRecorder::get_file_path() {
-    return this->file_path;
-}
-
-int MediaRecorder::start_record(AVCodecID video_codec_id, int width, int height) {
-    int ret = 0;
-    ret = avio_open(&this->f_ctx->pb, this->file_path.c_str(), AVIO_FLAG_WRITE);
+    ret = avio_open(&this->f_ctx->pb, full_path.c_str(), AVIO_FLAG_WRITE);
     if(ret != 0){
         std::cerr << "avio_open ret = " << ret  << std::endl;
         return ret;
@@ -105,6 +81,7 @@ int MediaRecorder::start_record(AVCodecID video_codec_id, int width, int height)
         std::cerr << "avformat_new_stream failed" << std::endl;
         return -1;
     }
+    std::cout << "new stream index = " << stream->index << std::endl;
 
     stream->codecpar->codec_id = video_codec_id;
     stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
@@ -124,22 +101,23 @@ int MediaRecorder::start_record(AVCodecID video_codec_id, int width, int height)
         return -1;
     }
     pthread_spin_lock(&spinLock);
-    status = RECORD_STATUS_RECORDING;
+    recordStatus = RECORD_STATUS_RECORDING;
     pthread_spin_unlock(&spinLock);
     return ret;
 }
 
 int MediaRecorder::stop_record() {
-    status = RECORD_STATUS_READY;
+    recordStatus = RECORD_STATUS_READY;
     pthread_spin_lock(&spinLock);
     av_write_trailer(this->f_ctx);
+    avformat_free_context(this->f_ctx);
     pthread_spin_unlock(&spinLock);
 }
 
 void MediaRecorder::onFrameReceivedCallback(void* address, std::uint64_t size) {
     pthread_spin_lock(&spinLock);
-    printf("MediaRecorder::onFrameReceivedCallback\n");
-    if(status == RECORD_STATUS_RECORDING){
+    // printf("MediaRecorder::onFrameReceivedCallback\n");
+    if(recordStatus == RECORD_STATUS_RECORDING){
         printf("-");
         write_one_frame(static_cast<uint8_t *>(address), size);
     }

@@ -20,7 +20,7 @@ extern "C" {
 #define FLAG_JPEG (1 << 3)
 
 static bool app_abort = false;
-static char *file_name = NULL;
+static char *video_path = NULL;
 static char *jpeg_path = NULL;
 
 static std::string PUBLISH_URL = "tcp://*:8888";
@@ -33,6 +33,7 @@ static std::string SUB_TOPIC = "command: ";
 static JpegCapture *jpeg_capture = NULL;
 static MediaRecorder *media_recorder = NULL;
 static Communicator *communicator = NULL;
+static StreamReceiver *stream_receiver = NULL;
 
 static void print_help() {
     std::cout << "this is help message" << std::endl;
@@ -45,13 +46,15 @@ static void signal_handler(int signal) {
 static void command_handler(std::string cmd){
     std::cout << "cmd: " + cmd << std::endl;
     if (cmd.compare("start") == 0){
-        if(media_recorder != NULL){
-            media_recorder->start_record(AV_CODEC_ID_H265, 1920, 1080);
-        }
+        media_recorder = new MediaRecorder(video_path);
+        media_recorder->start_record(AV_CODEC_ID_H265, 3840, 2160);
+        stream_receiver->addConsumer(8, media_recorder);
     } else if (cmd.compare("stop") == 0){
         if(media_recorder != NULL){
             media_recorder->stop_record();
             communicator->broadcast("record:", "over");
+            stream_receiver->removeConsumer(media_recorder);
+            delete media_recorder;
         }
     }
 
@@ -83,7 +86,7 @@ int main(int argc, char** argv){
             break;
         case 'v':
             flag |= FLAG_VIDEO;
-            file_name = optarg;
+            video_path = optarg;
             break;
         case 'm':
             flag |= FLAG_MJPEG;
@@ -94,28 +97,26 @@ int main(int argc, char** argv){
             break;
         default:
             print_help();
+            return -1;
         }
     }
 
-    StreamReceiver receiver;
+    stream_receiver = new StreamReceiver();
     communicator = new Communicator(PUBLISH_URL, SUB_URL);
 
 
     if (flag & (FLAG_DEBUG | FLAG_JPEG)) {
         std::cout << "path = " << jpeg_path << std::endl;
         jpeg_capture = new JpegCapture(std::string(jpeg_path));
-        receiver.addConsumer(16, jpeg_capture);
+        stream_receiver->addConsumer(16, jpeg_capture);
         jpeg_capture->setSavedCallback(savedCallback, static_cast<void *>(communicator));
     }
     
     if (flag & FLAG_VIDEO) {
-        std::cout << "video path = " << file_name << std::endl;
-        media_recorder = new MediaRecorder(file_name);
-        media_recorder->init();
-        receiver.addConsumer(8, media_recorder);
+        std::cout << "video path = " << video_path << std::endl;
     }
 
-    receiver.start();
+    stream_receiver->start();
 
     signal(SIGINT, signal_handler);    
     signal(SIGTERM, signal_handler);
@@ -134,7 +135,7 @@ int main(int argc, char** argv){
     }
 
 
-    receiver.stop();
+    stream_receiver->stop();
     std::cout << "receive stoped" << std::endl;
     return 0;
 }
