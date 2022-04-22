@@ -7,7 +7,7 @@
 #include "space_data_reporter.h"
 
 extern "C"{
-#include "libavformat/avformat.h"
+// #include "libavformat/avformat.h"
 #include "cif_stream.h"
 #include "ipcu_stream.h"
 }
@@ -122,6 +122,7 @@ int MediaRecorder::stop_record() {
     av_write_trailer(this->f_ctx);
     avformat_free_context(this->f_ctx);
     pthread_spin_unlock(&spinLock);
+    return 0;
 }
 
 void MediaRecorder::onFrameReceivedCallback(void* address, std::uint64_t size) {

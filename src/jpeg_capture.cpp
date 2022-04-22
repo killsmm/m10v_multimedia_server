@@ -5,15 +5,6 @@
 #include <algorithm>
 #include <vector>
 
-static bool save_jpeg(const char *fn, void* addr, unsigned long size) {
-    std::cout << "file name = " << fn << std::endl;
-    std::ofstream os;
-    os.open(fn, std::ofstream::binary);
-    os.write(static_cast<const char*>(addr), size);
-    os.close();
-    return os.good();
-}
-
 
 
 JpegCapture::JpegCapture(std::string path){
@@ -33,7 +24,7 @@ void JpegCapture::onFrameReceivedCallback(void* address, std::uint64_t size) {
     std::strftime(time_str, 100, "%y%m%d%H%M%S", now);
     std::string name = this->filePath + std::string("/") + std::string(JPEG_PREFIX_STRING) + 
                                 std::string(time_str) + std::string(JPEG_SUFFIX_STRING);
-    if(save_jpeg(name.c_str(), address, size)){
+    if(FrameConsumer::save_frame_to_file(name.c_str(), address, size)){
         if(onSavedCallback != NULL){
             onSavedCallback(name, onSavedCallbackData);
         }

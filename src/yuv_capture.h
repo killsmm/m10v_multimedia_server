@@ -1,18 +1,18 @@
-#ifndef JPEG_CAPTURE_H
-#define JPEG_CAPTURE_H
+#ifndef YUV_CAPTURE_H
+#define YUV_CAPTURE_H
 
 #include "frame_consumer.h"
 
-#define JPEG_PREFIX_STRING "img"
-#define JPEG_SUFFIX_STRING ".jpg"
+#define YUV_PREFIX_STRING "img"
+#define YUV_SUFFIX_STRING ".raw"
 
 typedef void (*SavedCallback)(std::string path, void *data);
 
-class JpegCapture : public FrameConsumer
+class YuvCapture : public FrameConsumer
 {
 public:
-    JpegCapture(std::string path = ".");
-    ~JpegCapture();
+    YuvCapture(std::string path = ".");
+    ~YuvCapture();
     int start();
     int stop();
     void onFrameReceivedCallback(void *address, std::uint64_t size);
@@ -25,4 +25,5 @@ private:
 
 };
 
-#endif
+#endif // DEBUG
+
