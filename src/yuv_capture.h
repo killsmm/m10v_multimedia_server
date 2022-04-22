@@ -4,7 +4,7 @@
 #include "frame_consumer.h"
 
 #define YUV_PREFIX_STRING "img"
-#define YUV_SUFFIX_STRING ".raw"
+#define YUV_SUFFIX_STRING ".yuv"
 
 typedef void (*SavedCallback)(std::string path, void *data);
 

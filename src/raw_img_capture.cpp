@@ -25,7 +25,6 @@ void RawImgCapture::onFrameReceivedCallback(void* address, std::uint64_t size) {
     std::strftime(time_str, 100, "%y%m%d%H%M%S", now);
     std::string name = this->filePath + std::string("/") + std::string(RAW_PREFIX_STRING) + 
                                 std::string(time_str) + std::string(RAW_SUFFIX_STRING);
-    std::cout << name << std::endl;
     if(FrameConsumer::save_frame_to_file(name.c_str(), address, size)){
         if(onSavedCallback != NULL){
             onSavedCallback(name, onSavedCallbackData);

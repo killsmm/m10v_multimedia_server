@@ -14,11 +14,11 @@ extern "C"{
 static int cb(const struct cif_stream_send* p, void *d){
     StreamReceiver* receiver = (StreamReceiver *)d;
     int ret = 0;
-    printf("sub_cmd = %08x, stream_id = %d\n",p->Sub_Command, p->stream_id);
-    printf("samplesize = %d\n", p->sample_size);
+    // // printf("sub_cmd = %08x, stream_id = %d\n",p->Sub_Command, p->stream_id);
+    // printf("samplesize = %d\n", p->sample_size);
     for(StreamReceiver::StreamConsumer *c : receiver->consumerList)
     {
-        printf("c->streamType = %08x, stream_id = %d\n", c->streamType, c->streamId);
+        // printf("c->streamType = %08x, stream_id = %d\n", c->streamType, c->streamId);
         if (c->streamType == p->Sub_Command && p->stream_id == c->streamId){
             c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size);
         }
