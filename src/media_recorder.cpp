@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/timeb.h>
 #include <fcntl.h>
+#include "space_data_reporter.h"
 
 extern "C"{
 #include "libavformat/avformat.h"
@@ -23,6 +24,7 @@ static int get_timestamp(AVRational time_base){
 MediaRecorder::MediaRecorder(std::string path){
     pthread_spin_init(&spinLock, PTHREAD_PROCESS_PRIVATE);
     this->record_path = path;
+    this->avi_has_gps_stream = true;
     av_register_all();
 }
 
@@ -47,15 +49,23 @@ int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
     ret = av_write_frame(this->f_ctx, &this->packet);
     if (ret != 0) {
         std::cout << "write frame failed\n" << std::endl;
-        return ret;
+    }
+
+    if (this->avi_has_gps_stream){
+        uint8_t space_data[SpaceDataReporter::SPACE_DATA_SIZE]; 
+        SpaceDataReporter::writeCurrentSpaceDataToBuf(space_data);
+        av_packet_from_data(&this->packet, space_data, sizeof(space_data));
+        this->packet.stream_index = this->f_ctx->streams[1]->index;
+        int64_t time_stamp = get_timestamp(this->f_ctx->streams[1]->time_base);
+        this->packet.pts = time_stamp;
+        this->packet.dts = time_stamp;
+        ret |= av_write_frame(this->f_ctx, &this->packet);
+        if (ret != 0){
+            std::cout << "write gps frame failed" << std::endl;
+        }
     }
 
     return ret;
-}
-
-int MediaRecorder::init() {
-
-    return 0;
 }
 
 int MediaRecorder::start_record(AVCodecID video_codec_id, int width, int height, std::string file_name) {
@@ -88,9 +98,9 @@ int MediaRecorder::start_record(AVCodecID video_codec_id, int width, int height,
     stream->codecpar->width = width;
     stream->codecpar->height = height;
 
-    // AVStream *gps_stream = avformat_new_stream(this->f_ctx, NULL);
-    // gps_stream->codecpar->codec_type = AVMEDIA_TYPE_DATA;
-    // gps_stream->codecpar->codec_id = AV_CODEC_ID_TTF;
+    if (this->avi_has_gps_stream){
+        AVStream *gps_stream = createGPSStream(this->f_ctx);
+    }
 
     ftime(&start_time);
 
@@ -122,4 +132,13 @@ void MediaRecorder::onFrameReceivedCallback(void* address, std::uint64_t size) {
         write_one_frame(static_cast<uint8_t *>(address), size);
     }
     pthread_spin_unlock(&spinLock);
+}
+
+AVStream * MediaRecorder::createGPSStream(AVFormatContext *ctx){
+    AVStream *stream = avformat_new_stream(ctx, NULL);
+    stream->codecpar->codec_id = AV_CODEC_ID_BIN_DATA;
+    stream->codecpar->codec_type = AVMEDIA_TYPE_DATA;
+    stream->codecpar->sample_rate = 30;
+    stream->codecpar->bits_per_raw_sample = 32 * 8;
+    return stream;
 }

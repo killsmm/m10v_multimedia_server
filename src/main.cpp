@@ -47,8 +47,8 @@ static void command_handler(std::string cmd){
     std::cout << "cmd: " + cmd << std::endl;
     if (cmd.compare("start") == 0){
         media_recorder = new MediaRecorder(video_path);
-        media_recorder->start_record(AV_CODEC_ID_H265, 3840, 2160);
-        stream_receiver->addConsumer(8, media_recorder);
+        media_recorder->start_record(AV_CODEC_ID_H264, 3840, 2160, "test.avi");
+        stream_receiver->addConsumer(0, media_recorder);
     } else if (cmd.compare("stop") == 0){
         if(media_recorder != NULL){
             media_recorder->stop_record();

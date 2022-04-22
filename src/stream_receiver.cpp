@@ -15,7 +15,7 @@ extern "C"{
 static int cb(const struct cif_stream_send* p, void *d){
     StreamReceiver* receiver = (StreamReceiver *)d;
     int ret = 0;
-    // printf("stream_id = %d\n", p->stream_id);
+    printf("stream_id = %d\n", p->stream_id);
     for(StreamReceiver::StreamConsumer *c : receiver->consumerList)
     {
         if (p->stream_id == c->streamId){
