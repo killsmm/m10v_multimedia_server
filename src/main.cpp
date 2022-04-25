@@ -2,14 +2,16 @@
 #include "media_recorder.h"
 #include "stream_receiver.h"
 #include "jpeg_capture.h"
+#include "raw_img_capture.h"
+#include "yuv_capture.h"
 #include <zmq.hpp>
 #include <string>
 #include "communicator.h"
 #include "json-c/json.h"
 
+
 extern "C" {
-    #include <libavformat/avformat.h>
-    #include "ipcu_stream.h"
+     #include "ipcu_stream.h"
     #include "signal.h"
     #include "unistd.h"
 }
@@ -30,6 +32,8 @@ static std::string PUBLISH_TOPIC = "jpeg: ";
 static std::string SUB_URL = "tcp://192.168.137.11:8889";
 static std::string SUB_TOPIC = "command: ";
 
+static YuvCapture *yuv_capture = NULL;
+static RawImgCapture *raw_capture = NULL;
 static JpegCapture *jpeg_capture = NULL;
 static MediaRecorder *media_recorder = NULL;
 static Communicator *communicator = NULL;
@@ -48,7 +52,7 @@ static void command_handler(std::string cmd){
     if (cmd.compare("start") == 0){
         media_recorder = new MediaRecorder(video_path);
         media_recorder->start_record(AV_CODEC_ID_H264, 3840, 2160, "test.avi");
-        stream_receiver->addConsumer(0, media_recorder);
+        stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, 0, media_recorder);
     } else if (cmd.compare("stop") == 0){
         if(media_recorder != NULL){
             media_recorder->stop_record();
@@ -105,11 +109,32 @@ int main(int argc, char** argv){
     communicator = new Communicator(PUBLISH_URL, SUB_URL);
 
 
+
     if (flag & (FLAG_DEBUG | FLAG_JPEG)) {
         std::cout << "path = " << jpeg_path << std::endl;
         jpeg_capture = new JpegCapture(std::string(jpeg_path));
-        stream_receiver->addConsumer(16, jpeg_capture);
+        stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_JPG, 16, jpeg_capture);
         jpeg_capture->setSavedCallback(savedCallback, static_cast<void *>(communicator));
+
+        raw_capture = new RawImgCapture(std::string(jpeg_path));
+        stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_RAW, 1, raw_capture);
+        raw_capture->setSavedCallback([](std::string path, void* data){   
+                std::cout << "raw saved : " << path << std::endl;
+                if(data != NULL){
+                    Communicator *comm = static_cast<Communicator *>(data);
+                    comm->broadcast("raw: ", path);
+                }
+            }, static_cast<void *>(communicator));
+
+        yuv_capture = new YuvCapture(std::string(jpeg_path));
+        stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_YUV, 1, yuv_capture);
+        raw_capture->setSavedCallback([](std::string path, void* data){   
+                std::cout << "yuv saved : " << path << std::endl;
+                if(data != NULL){
+                    Communicator *comm = static_cast<Communicator *>(data);
+                    comm->broadcast("yuv: ", path);
+                }
+            }, static_cast<void *>(communicator));
     }
     
     if (flag & FLAG_VIDEO) {

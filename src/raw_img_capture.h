@@ -1,18 +1,18 @@
-#ifndef JPEG_CAPTURE_H
-#define JPEG_CAPTURE_H
+#ifndef RAW_IMG_CAPTURE_H
+#define RAW_IMG_CAPTURE_H
 
 #include "frame_consumer.h"
 
-#define JPEG_PREFIX_STRING "img"
-#define JPEG_SUFFIX_STRING ".jpg"
+#define RAW_PREFIX_STRING "img"
+#define RAW_SUFFIX_STRING ".raw"
 
 typedef void (*SavedCallback)(std::string path, void *data);
 
-class JpegCapture : public FrameConsumer
+class RawImgCapture : public FrameConsumer
 {
 public:
-    JpegCapture(std::string path = ".");
-    ~JpegCapture();
+    RawImgCapture(std::string path = ".");
+    ~RawImgCapture();
     int start();
     int stop();
     void onFrameReceivedCallback(void *address, std::uint64_t size);
@@ -24,5 +24,4 @@ private:
     std::string filePath;
 
 };
-
-#endif
+#endif 

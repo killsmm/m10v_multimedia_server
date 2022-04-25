@@ -1,25 +1,25 @@
 #include "stream_receiver.h"
-#include "media_recorder.h"
 #include <iostream>
 #include <signal.h>
 #include <unistd.h>
 #include <sys/timeb.h>
 #include <fcntl.h>
-
+#include <cstring>
 extern "C"{
-#include "libavformat/avformat.h"
 #include "cif_stream.h"
 #include "ipcu_stream.h"
+
 }
 
 static int cb(const struct cif_stream_send* p, void *d){
     StreamReceiver* receiver = (StreamReceiver *)d;
     int ret = 0;
-    printf("stream_id = %d\n", p->stream_id);
+    // // printf("sub_cmd = %08x, stream_id = %d\n",p->Sub_Command, p->stream_id);
+    // printf("samplesize = %d\n", p->sample_size);
     for(StreamReceiver::StreamConsumer *c : receiver->consumerList)
     {
-        if (p->stream_id == c->streamId){
-            // printf("p->stream_id == c->streamId\n", p->stream_id);
+        // printf("c->streamType = %08x, stream_id = %d\n", c->streamType, c->streamId);
+        if (c->streamType == p->Sub_Command && p->stream_id == c->streamId){
             c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size);
         }
     }
@@ -34,13 +34,14 @@ StreamReceiver::~StreamReceiver() {
     
 }
 
-StreamReceiver::StreamConsumer::StreamConsumer(int id, FrameConsumer* consumer){
+StreamReceiver::StreamConsumer::StreamConsumer(E_CPU_IF_COMMAND_STREAM type, int id, FrameConsumer* consumer){
     streamId = id;
     fConsumer = consumer;
+    streamType = type;
 }
 
-void StreamReceiver::addConsumer(int id, FrameConsumer *consumer) {
-    consumerList.push_back(new StreamConsumer(id, consumer));
+void StreamReceiver::addConsumer(E_CPU_IF_COMMAND_STREAM type, int id, FrameConsumer *consumer) {
+    consumerList.push_back(new StreamConsumer(type, id, consumer));
 }
 
 void StreamReceiver::removeConsumer(FrameConsumer *consumer) {
