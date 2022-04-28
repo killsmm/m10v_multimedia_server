@@ -15,6 +15,8 @@ private:
     IPCU555FramedSource(UsageEnvironment& env, void *data);
     uint8_t *frame_buffer;
     uint64_t frame_size;
+    EventTriggerId eventTriggerId;
+    void signalNewFrameData();
     /* data */
 public:
     // IPCU555FramedSource();
@@ -23,6 +25,7 @@ public:
     static IPCU555FramedSource* createNew(UsageEnvironment& env, void *data);
     int writeFrameToBuf(uint8_t *addr, uint64_t size);
     void doGetNextFrame();
+    static void deliverFrame0(void* clientData);
 };
 
 

@@ -27,7 +27,7 @@ int IPCU555FramedSource::writeFrameToBuf(uint8_t *addr, uint64_t size)
     memmove(this->frame_buffer, addr, size);
     this->frame_size = size;
     pthread_mutex_unlock(&lock);
-    
+    signalNewFrameData();
     return 0;
 }
 
@@ -36,13 +36,28 @@ IPCU555FramedSource::IPCU555FramedSource(UsageEnvironment& env, void *data)
 {
     this->frame_buffer = new uint8_t[BUFFER_SIZE];
     this->frame_size = 0;
+    this->eventTriggerId = env.taskScheduler().createEventTrigger(deliverFrame0);
+}
 
+void IPCU555FramedSource::signalNewFrameData()
+{
+    TaskScheduler* ourScheduler = &this->envir().taskScheduler();
+
+    if (ourScheduler != NULL) { // sanity check
+        ourScheduler->triggerEvent(this->eventTriggerId, this);
+    }
 }
 
 
 void IPCU555FramedSource::doGetNextFrame()
 {
-    deliverFrame();
+    // std::cout << "doGetNextFrame()" << std::endl;
+    // deliverFrame();
+}
+
+void IPCU555FramedSource::deliverFrame0(void* clientData)
+{
+    ((IPCU555FramedSource*)clientData)->deliverFrame();
 }
 
 void IPCU555FramedSource::deliverFrame()
@@ -68,32 +83,34 @@ void IPCU555FramedSource::deliverFrame()
     //         If, however, the device is a 'live source' (e.g., encoded from a camera or microphone), then we probably don't need
     //         to set this variable, because - in this case - data will never arrive 'early'.
     // Note the code below.
-    if (pthread_mutex_trylock(&lock) != 0){
-        std::cout << "doGetNextFrame trylock failed\n" << std::endl;
-        return;
-    }
+
     if (!isCurrentlyAwaitingData()){
         std::cout << "!isCurrentlyAwaitingData" << std::endl;
         return; // we're not ready for the data yet
     }
-    u_int8_t *newFrameDataStart = this->frame_buffer + 4; //%%% TO BE WRITTEN %%%
-    unsigned newFrameSize = this->frame_size > 4 ? this->frame_size - 4 : 0;                            //%%% TO BE WRITTEN %%%
+    if (pthread_mutex_trylock(&lock) == 0){
+        u_int8_t *newFrameDataStart = this->frame_buffer + 4; //%%% TO BE WRITTEN %%%
+        unsigned newFrameSize = this->frame_size > 4 ? this->frame_size - 4 : 0;                            //%%% TO BE WRITTEN %%%
 
-    // Deliver the data here:
-    if (newFrameSize > fMaxSize)
-    {
-        fFrameSize = fMaxSize;
-        fNumTruncatedBytes = newFrameSize - fMaxSize;
-        std::cout << "newFrameSize > fMaxSize"  << newFrameSize << " > " << fMaxSize << std::endl;
+        // Deliver the data here:
+        if (newFrameSize > fMaxSize)
+        {
+            fFrameSize = fMaxSize;
+            fNumTruncatedBytes = newFrameSize - fMaxSize;
+            std::cout << "newFrameSize > fMaxSize"  << newFrameSize << " > " << fMaxSize << std::endl;
+        }
+        else
+        {
+            fFrameSize = newFrameSize;
+        }
+
+            gettimeofday(&fPresentationTime, NULL);
+            memmove(fTo, newFrameDataStart, fFrameSize);
+            pthread_mutex_unlock(&lock);
+    }else {
+        fFrameSize = 0;
+        fNumTruncatedBytes = 0;
+        std::cout << "doGetNextFrame trylock failed\n" << std::endl;
     }
-    else
-    {
-        fFrameSize = newFrameSize;
-    }
-
-    gettimeofday(&fPresentationTime, NULL);
-    memmove(fTo, newFrameDataStart, fFrameSize);
-    pthread_mutex_unlock(&lock);
-
     FramedSource::afterGetting(this);
 }

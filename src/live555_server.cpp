@@ -19,6 +19,8 @@ Live555Server::Live555Server() {
     // this->serverMediaSession->addSubsession(sub);
 
     this->rtspServer->addServerMediaSession(this->serverMediaSession);
+    this->env->taskScheduler().createEventTrigger(IPCU555FramedSource::deliverFrame0);
+
 }
 
 Live555Server::~Live555Server() {
