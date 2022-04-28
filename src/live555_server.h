@@ -36,6 +36,8 @@ class Live555Server : public FrameConsumer {
         BasicUsageEnvironment *env;
         ServerMediaSession* serverMediaSession;
         IPCU555Subsession *subSession;
+        pthread_t thread;
+
 };
 
 

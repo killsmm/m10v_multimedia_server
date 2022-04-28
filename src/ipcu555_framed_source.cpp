@@ -103,7 +103,6 @@ void IPCU555FramedSource::deliverFrame()
         {
             fFrameSize = newFrameSize;
         }
-
             gettimeofday(&fPresentationTime, NULL);
             memmove(fTo, newFrameDataStart, fFrameSize);
             pthread_mutex_unlock(&lock);
