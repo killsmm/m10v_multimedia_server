@@ -1,7 +1,10 @@
 #include "ipcu555_framed_source.h"
 #include <pthread.h>
 #include <iostream>
+#include <queue>
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+
 
 IPCU555FramedSource* IPCU555FramedSource::createNew(UsageEnvironment& env, void *data)
 {
@@ -31,17 +34,14 @@ IPCU555FramedSource::IPCU555FramedSource(UsageEnvironment& env, void *data)
         : FramedSource(env)
 {
     this->frame_buffer = new uint8_t[BUFFER_SIZE];
+    this->frame_size = 0;
+
 }
 
 
 void IPCU555FramedSource::doGetNextFrame()
 {
-    // if (pthread_mutex_lock(&lock) != 0){
-    //     std::cout << "doGetNextFrame trylock failed\n" << std::endl;
-    //     return;
-    // }
     deliverFrame();
-    // pthread_mutex_unlock(&lock);
 }
 
 void IPCU555FramedSource::deliverFrame()
@@ -67,7 +67,10 @@ void IPCU555FramedSource::deliverFrame()
     //         If, however, the device is a 'live source' (e.g., encoded from a camera or microphone), then we probably don't need
     //         to set this variable, because - in this case - data will never arrive 'early'.
     // Note the code below.
-
+    if (pthread_mutex_trylock(&lock) != 0){
+        std::cout << "doGetNextFrame trylock failed\n" << std::endl;
+        return;
+    }
     if (!isCurrentlyAwaitingData()){
         std::cout << "!isCurrentlyAwaitingData" << std::endl;
         return; // we're not ready for the data yet
@@ -86,9 +89,10 @@ void IPCU555FramedSource::deliverFrame()
     {
         fFrameSize = newFrameSize;
     }
-    gettimeofday(&fPresentationTime, NULL); // If you have a more accurate time - e.g., from an encoder - then use that instead.
-    // If the device is *not* a 'live source' (e.g., it comes instead from a file or buffer), then set "fDurationInMicroseconds" here.
+
+    gettimeofday(&fPresentationTime, NULL);
     memmove(fTo, newFrameDataStart, fFrameSize);
-    // After delivering the data, inform the reader that it is now available:
+    pthread_mutex_unlock(&lock);
+
     FramedSource::afterGetting(this);
 }
