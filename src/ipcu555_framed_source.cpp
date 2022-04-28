@@ -23,7 +23,8 @@ int IPCU555FramedSource::writeFrameToBuf(uint8_t *addr, uint64_t size)
     }
     // std::cout << this->frame_size << " " << this->frame_buffer << std::endl;
     // printf("frame_buffer address: %08x\n", frame_buffer);
-    memcpy(this->frame_buffer, addr, size);
+    
+    memmove(this->frame_buffer, addr, size);
     this->frame_size = size;
     pthread_mutex_unlock(&lock);
     
@@ -75,8 +76,8 @@ void IPCU555FramedSource::deliverFrame()
         std::cout << "!isCurrentlyAwaitingData" << std::endl;
         return; // we're not ready for the data yet
     }
-    u_int8_t *newFrameDataStart = this->frame_buffer; //%%% TO BE WRITTEN %%%
-    unsigned newFrameSize = this->frame_size;                            //%%% TO BE WRITTEN %%%
+    u_int8_t *newFrameDataStart = this->frame_buffer + 4; //%%% TO BE WRITTEN %%%
+    unsigned newFrameSize = this->frame_size > 4 ? this->frame_size - 4 : 0;                            //%%% TO BE WRITTEN %%%
 
     // Deliver the data here:
     if (newFrameSize > fMaxSize)

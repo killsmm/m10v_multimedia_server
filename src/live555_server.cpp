@@ -7,7 +7,7 @@ Live555Server::Live555Server() {
 
     this->rtspServer = RTSPServer::createNew(*this->env);    
 
-    OutPacketBuffer::maxSize = 200 * 1024;
+    OutPacketBuffer::maxSize = 8 * 1024 * 1024;
 
     this->serverMediaSession = ServerMediaSession::createNew(*this->env, "test");
 

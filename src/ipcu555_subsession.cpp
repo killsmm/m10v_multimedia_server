@@ -7,7 +7,7 @@ FramedSource* IPCU555Subsession::createNewStreamSource(unsigned clientSessionId,
 {
     estBitrate = 10000;
     this->ipcuFramedSource = IPCU555FramedSource::createNew(envir(), nullptr);
-    return H264VideoStreamFramer::createNew(envir(), this->ipcuFramedSource);
+    return H264VideoStreamDiscreteFramer::createNew(envir(), this->ipcuFramedSource);
 }
 
 RTPSink* IPCU555Subsession::createNewRTPSink(Groupsock *rtpGroupsock,

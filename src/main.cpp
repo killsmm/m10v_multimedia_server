@@ -150,7 +150,7 @@ int main(int argc, char** argv){
         system("camera_if_direct 0x1 0xc 0xb\n");
         system("camera_if_direct 0x1 0xe 0xb\n");
         system("camera_if_direct 0x1 0xf 0xb\n");
-        system("camera_if_direct 0x1 0x19 0x1\n");
+        // system("camera_if_direct 0x1 0x19 0x1\n");
         system("camera_if_direct 0x1 0x41 0xFF01FFFF");
         system("camera_if_direct 0x8 0x3 0x1\n");
         
