@@ -11,6 +11,8 @@
 #include "rtsp_streamer.h"
 #include "live555_server.h"
 
+//#define RTSP_TEST
+
 extern "C" {
      #include "ipcu_stream.h"
     #include "signal.h"
@@ -73,12 +75,6 @@ static void savedCallback(std::string path, void* data){
     if(data != NULL){
         Communicator *comm = static_cast<Communicator *>(data);
         comm->broadcast(PUBLISH_TOPIC, path);
-
-        // std::string msg_str = "";
-        // msg_str.append(PUBLISH_TOPIC);
-        // msg_str.append(path);
-        // zmq::message_t msg(msg_str.c_str(), msg_str.length());
-        // socket->send(msg, ZMQ_DONTWAIT);
     }
 };
 
@@ -118,7 +114,7 @@ int main(int argc, char** argv){
 
 
 
-    if (flag & (FLAG_DEBUG | FLAG_JPEG)) {
+    if (flag & FLAG_JPEG) {
         std::cout << "path = " << jpeg_path << std::endl;
         jpeg_capture = new JpegCapture(std::string(jpeg_path));
         stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_JPG, 16, jpeg_capture);
@@ -146,24 +142,16 @@ int main(int argc, char** argv){
     }
 
     if (flag & FLAG_RTSP) {
+#ifdef RTSP_TEST
         system("camera_if_direct 0x1 0x2 0x22\n");
         system("camera_if_direct 0x1 0xc 0xb\n");
         system("camera_if_direct 0x1 0xe 0xb\n");
         system("camera_if_direct 0x1 0xf 0xb\n");
-        // system("camera_if_direct 0x1 0x19 0x1\n");
         system("camera_if_direct 0x1 0x41 0xFF01FFFF");
         system("camera_if_direct 0x8 0x3 0x1\n");
-        
         system("camera_if_direct 0x0 0xb 0x2\n");
         system("camera_if_direct 0x0 0xb 0x8\n");
-        
-        /*
-
-        rtsp_streamer = new RtspStreamer(std::string(rtsp_channel_name));
-        std::cout << "rtsp channel = " + std::string(rtsp_channel_name) << std::endl;
-        stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, 0, rtsp_streamer);
-        rtsp_streamer->startPushStream(AV_CODEC_ID_H264, 3840, 2160);
-        */
+#endif
         live555_server = new Live555Server();
         stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, 0, live555_server);
         live555_server->start();
