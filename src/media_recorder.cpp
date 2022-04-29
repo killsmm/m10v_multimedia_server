@@ -34,7 +34,6 @@ MediaRecorder::~MediaRecorder() {
 
 int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
     av_init_packet(&this->packet);
-
 	int ret = av_packet_from_data(&this->packet, addr, size);
     if(ret != 0){
         std::cout << "av packet from data failed" << std::endl;
@@ -45,7 +44,7 @@ int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
     int64_t time_stamp = get_timestamp(this->f_ctx->streams[0]->time_base);
     this->packet.pts = time_stamp;
     this->packet.dts = time_stamp;
-    
+    printf("addr = %08x size = %d\n", addr, size); 
     ret = av_write_frame(this->f_ctx, &this->packet);
     if (ret != 0) {
         std::cout << "write frame failed\n" << std::endl;

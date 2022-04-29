@@ -8,7 +8,10 @@
 #include <string>
 #include "communicator.h"
 #include "json-c/json.h"
+#include "rtsp_streamer.h"
+#include "live555_server.h"
 
+//#define RTSP_TEST
 
 extern "C" {
      #include "ipcu_stream.h"
@@ -20,10 +23,12 @@ extern "C" {
 #define FLAG_VIDEO (1 << 1)
 #define FLAG_MJPEG (1 << 2)
 #define FLAG_JPEG (1 << 3)
+#define FLAG_RTSP (1 << 4)
 
 static bool app_abort = false;
 static char *video_path = NULL;
 static char *jpeg_path = NULL;
+static char *rtsp_channel_name = NULL;
 
 static std::string PUBLISH_URL = "tcp://*:8888";
 static std::string PUBLISH_TOPIC = "jpeg: ";
@@ -38,6 +43,8 @@ static JpegCapture *jpeg_capture = NULL;
 static MediaRecorder *media_recorder = NULL;
 static Communicator *communicator = NULL;
 static StreamReceiver *stream_receiver = NULL;
+static RtspStreamer *rtsp_streamer = NULL;
+static Live555Server *live555_server = NULL;
 
 static void print_help() {
     std::cout << "this is help message" << std::endl;
@@ -61,7 +68,6 @@ static void command_handler(std::string cmd){
             delete media_recorder;
         }
     }
-
 }
 
 static void savedCallback(std::string path, void* data){
@@ -69,12 +75,6 @@ static void savedCallback(std::string path, void* data){
     if(data != NULL){
         Communicator *comm = static_cast<Communicator *>(data);
         comm->broadcast(PUBLISH_TOPIC, path);
-
-        // std::string msg_str = "";
-        // msg_str.append(PUBLISH_TOPIC);
-        // msg_str.append(path);
-        // zmq::message_t msg(msg_str.c_str(), msg_str.length());
-        // socket->send(msg, ZMQ_DONTWAIT);
     }
 };
 
@@ -82,7 +82,7 @@ int main(int argc, char** argv){
     int flag = 0;
     int c = 0;
     int ret = 0;
-    while ((c = getopt(argc, argv, "mdj:v:")) != -1) {
+    while ((c = getopt(argc, argv, "s:mdj:v:")) != -1) {
         switch (c)
         {
         case 'd':
@@ -99,6 +99,10 @@ int main(int argc, char** argv){
             flag |= FLAG_JPEG;
             jpeg_path = optarg;
             break;
+        case 's':
+            flag |= FLAG_RTSP;
+            rtsp_channel_name = optarg;
+            break;
         default:
             print_help();
             return -1;
@@ -110,7 +114,7 @@ int main(int argc, char** argv){
 
 
 
-    if (flag & (FLAG_DEBUG | FLAG_JPEG)) {
+    if (flag & FLAG_JPEG) {
         std::cout << "path = " << jpeg_path << std::endl;
         jpeg_capture = new JpegCapture(std::string(jpeg_path));
         stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_JPG, 16, jpeg_capture);
@@ -135,6 +139,22 @@ int main(int argc, char** argv){
                     comm->broadcast("yuv: ", path);
                 }
             }, static_cast<void *>(communicator));
+    }
+
+    if (flag & FLAG_RTSP) {
+#ifdef RTSP_TEST
+        system("camera_if_direct 0x1 0x2 0x22\n");
+        system("camera_if_direct 0x1 0xc 0xb\n");
+        system("camera_if_direct 0x1 0xe 0xb\n");
+        system("camera_if_direct 0x1 0xf 0xb\n");
+        system("camera_if_direct 0x1 0x41 0xFF01FFFF");
+        system("camera_if_direct 0x8 0x3 0x1\n");
+        system("camera_if_direct 0x0 0xb 0x2\n");
+        system("camera_if_direct 0x0 0xb 0x8\n");
+#endif
+        live555_server = new Live555Server(std::string(rtsp_channel_name));
+        stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, 0, live555_server);
+        live555_server->start();
     }
     
     if (flag & FLAG_VIDEO) {
