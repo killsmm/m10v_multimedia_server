@@ -10,7 +10,7 @@
 #include <BasicUsageEnvironment.hh>
 #include <ServerMediaSession.hh>
 #include "ipcu555_subsession.h"
-
+#include <string>
 
 #define DEFAULT_RTSP_ADDRESS "rtsp://localhost:8554/"
 
@@ -22,7 +22,7 @@ typedef enum {
 class Live555Server : public FrameConsumer {
 
     public:
-        Live555Server();
+        Live555Server(std::string stream_name);
         ~Live555Server();
         void start();
         void stop();

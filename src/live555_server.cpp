@@ -1,7 +1,7 @@
 #include "live555_server.h"
 
 
-Live555Server::Live555Server() {
+Live555Server::Live555Server(std::string stream_name) {
     this->scheduler = BasicTaskScheduler::createNew();
 	this->env = BasicUsageEnvironment::createNew(*this->scheduler);	
 
@@ -9,7 +9,7 @@ Live555Server::Live555Server() {
 
     OutPacketBuffer::maxSize = 8 * 1024 * 1024;
 
-    this->serverMediaSession = ServerMediaSession::createNew(*this->env, "h264");
+    this->serverMediaSession = ServerMediaSession::createNew(*this->env, stream_name.c_str());
     this->subSession = IPCU555Subsession::createNew(*this->env);
     this->serverMediaSession->addSubsession(this->subSession);
 

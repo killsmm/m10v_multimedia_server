@@ -152,7 +152,7 @@ int main(int argc, char** argv){
         system("camera_if_direct 0x0 0xb 0x2\n");
         system("camera_if_direct 0x0 0xb 0x8\n");
 #endif
-        live555_server = new Live555Server();
+        live555_server = new Live555Server(std::string(rtsp_channel_name));
         stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, 0, live555_server);
         live555_server->start();
     }
