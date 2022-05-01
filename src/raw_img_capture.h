@@ -15,7 +15,7 @@ public:
     ~RawImgCapture();
     int start();
     int stop();
-    void onFrameReceivedCallback(void *address, std::uint64_t size);
+    void onFrameReceivedCallback(void *address, std::uint64_t size, void *extra_data);
     void setSavedCallback(SavedCallback cb, void *data = NULL);
     void setPath(std::string path);
 private:

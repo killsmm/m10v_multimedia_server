@@ -124,7 +124,7 @@ int MediaRecorder::stop_record() {
     return 0;
 }
 
-void MediaRecorder::onFrameReceivedCallback(void* address, std::uint64_t size) {
+void MediaRecorder::onFrameReceivedCallback(void* address, std::uint64_t size, void *extra_data) {
     pthread_spin_lock(&spinLock);
     // printf("MediaRecorder::onFrameReceivedCallback\n");
     if(recordStatus == RECORD_STATUS_RECORDING){

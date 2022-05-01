@@ -29,7 +29,7 @@ class MediaRecorder : public FrameConsumer {
         AVCodecContext *v_codec;
         AVFormatContext *f_ctx;
         AVPacket packet;
-        void onFrameReceivedCallback (void* address, std::uint64_t size);
+        void onFrameReceivedCallback (void* address, std::uint64_t size, void *extra_data);
         int start();
         int stop();
         AVStream * createGPSStream(AVFormatContext *ctx);
