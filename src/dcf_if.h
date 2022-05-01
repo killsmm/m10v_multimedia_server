@@ -9,6 +9,7 @@
 #ifndef _DCF_IF_H_
 #define _DCF_IF_H_
 
+
 typedef signed short		FW_SHORT;
 typedef unsigned short		FW_USHORT;
 typedef signed long 		FW_LONG;
@@ -458,8 +459,8 @@ typedef struct {
 	T_BF_DCF_IF_FRACTION shutter_speed;
 	T_BF_DCF_IF_FRACTION aperture;
 	T_BF_DCF_IF_FRACTION max_aperture;
-	E_BF_DCF_IF_METERING metering;
-	E_BF_DCF_IF_WB light_source;
+	FW_UCHAR metering;
+	FW_UCHAR light_source;
 	FW_USHORT flash;
 	T_BF_DCF_IF_FRACTION dzoom_ratio;
 	FW_USHORT iso_value;

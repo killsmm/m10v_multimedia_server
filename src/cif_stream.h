@@ -6,7 +6,7 @@
  ****************************************************************/
 #include "ipcu_userland.h"
 #include "cmfwk_ipcu.h"
-
+#include "dcf_if.h"
 // Receive struct
 #define CIF_STREAM_SEND_NAL_UNIT_SIZE_MAX 32
 
@@ -107,6 +107,7 @@ struct cif_stream_send
 			unsigned long ctbl_siz;
 			unsigned long frame_no[2];
 			cif_sensor_timestamp sensor_timestamp;
+			T_BF_DCF_IF_EXIF_INFO exif;
 		}j;
 	}media;
 };

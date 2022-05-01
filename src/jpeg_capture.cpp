@@ -33,8 +33,9 @@ void JpegCapture::onFrameReceivedCallback(void* address, std::uint64_t size, voi
     std::string name = this->filePath + std::string("/") + std::string(JPEG_PREFIX_STRING) + 
                                 std::string(time_str) + std::to_string(now_us) +std::string(JPEG_SUFFIX_STRING);
 
-    
-    T_BF_DCF_IF_EXIF_INFO *info = static_cast<T_BF_DCF_IF_EXIF_INFO*>(extra_data);
+    std::cout << (int) extra_data << std::endl;    
+    T_BF_DCF_IF_EXIF_INFO *info = (T_BF_DCF_IF_EXIF_INFO*)(extra_data);
+
     if(saveJpegWithExif(address, size, *info, name.c_str()) == 0){
     // if(FrameConsumer::save_frame_to_file(name.c_str(), address, size)){
         if(onSavedCallback != NULL){
@@ -52,8 +53,23 @@ void JpegCapture::setPath(std::string path){
     this->filePath = path;
 }
 
+
+static ExifEntry * new_exif_entry(ExifTag tag, ExifFormat fmt, uint8_t *data, uint32_t size){
+    ExifEntry * entry = exif_entry_new();
+    entry->tag = tag;
+    entry->format = fmt;
+    entry->components = 1;
+    entry->size = size;
+    entry->data = data;
+    return entry;
+}
+
 bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_IF_EXIF_INFO info, const char *path)
 {
+    printf("exif size = %d\n", sizeof(info));
+    std::cout << "iso = " << info.iso_value << std::endl;
+    std::cout << "exp_time = " << info.exposure_time.nume << "/" << info.exposure_time.denomi << std::endl;
+
     JPEGData *jpegData = jpeg_data_new_from_data((uint8_t *)address, size);
     
 	ExifData* exif = exif_data_new();
@@ -62,28 +78,28 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
         return false;
     }
 
-    exif_data_dump(exif);
+    
     ExifByteOrder byteOrder = exif_data_get_byte_order(exif);
     ExifContent *content = exif_content_new();
 
-    ExifEntry * exifEntryISO = exif_entry_new();
-    exifEntryISO = exif_entry_new();
-    exifEntryISO->tag = EXIF_TAG_ISO_SPEED_RATINGS;
-    exifEntryISO->format = EXIF_FORMAT_SHORT;
-    exifEntryISO->size = 1;
-    exifEntryISO->components = 1;
-    exifEntryISO->data = (uint8_t *)(&(info.iso_value));
+    /* iso */
+    uint32_t iso_data_size = exif_format_get_size(EXIF_FORMAT_SHORT);
+    uint8_t iso_data[iso_data_size];
+    exif_set_short(iso_data, byteOrder, info.iso_value);
+    ExifEntry * exifEntryISO = new_exif_entry(EXIF_TAG_ISO_SPEED_RATINGS, EXIF_FORMAT_SHORT, 
+                                                iso_data, iso_data_size);
     exif_content_add_entry(content, exifEntryISO);
 
-    ExifEntry * exifEntryShuter = exif_entry_new();
-    exifEntryShuter = exif_entry_new();
-    exifEntryShuter->tag = EXIF_TAG_ISO_SPEED_RATINGS;
-    exifEntryShuter->format = EXIF_FORMAT_FLOAT;
-    exifEntryShuter->size = 1;
-    exifEntryShuter->components = 1;
-    float shutter_speed = ((float)info.shutter_speed.nume) / info.shutter_speed.denomi;
-    exifEntryShuter->data = (uint8_t *)(&shutter_speed);
-    exif_content_add_entry(content, exifEntryShuter);
+    /* exposure time */
+    uint32_t shutter_speed_data_size = exif_format_get_size(EXIF_FORMAT_RATIONAL);
+    uint8_t shutter_speed_data[shutter_speed_data_size];
+    exif_set_rational(shutter_speed_data, byteOrder, ExifRational{
+                                                .numerator = info.exposure_time.nume,
+                                                .denominator = info.exposure_time.denomi
+                                                });
+    ExifEntry * exifEntryShutter = new_exif_entry(EXIF_TAG_EXPOSURE_TIME, EXIF_FORMAT_RATIONAL, 
+                                                    shutter_speed_data, shutter_speed_data_size);    
+    exif_content_add_entry(content, exifEntryShutter);
 
     exif->ifd[EXIF_IFD_EXIF] = content;
     exif_data_dump(exif);
