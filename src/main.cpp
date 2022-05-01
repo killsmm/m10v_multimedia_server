@@ -132,7 +132,7 @@ int main(int argc, char** argv){
 
         yuv_capture = new YuvCapture(std::string(jpeg_path));
         stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_YUV, 1, yuv_capture);
-        raw_capture->setSavedCallback([](std::string path, void* data){   
+        yuv_capture->setSavedCallback([](std::string path, void* data){   
                 std::cout << "yuv saved : " << path << std::endl;
                 if(data != NULL){
                     Communicator *comm = static_cast<Communicator *>(data);
