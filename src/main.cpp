@@ -74,6 +74,14 @@ static void savedCallback(std::string path, void* data){
     std::cout << "jpeg saved : " << path << std::endl;
     if(data != NULL){
         Communicator *comm = static_cast<Communicator *>(data);
+        comm->broadcast ("", "{ \
+                                \"cmd\":\"TakePhotoResult\", \
+                                    \"data\":{ \
+                                        \"path\":\"/mnt/temp\", \
+                                        \"result\":\"success\"  \
+                                        } \
+                            }"
+                        );
         comm->broadcast(PUBLISH_TOPIC, path);
     }
 };
