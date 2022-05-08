@@ -30,10 +30,10 @@ static char *video_path = NULL;
 static char *jpeg_path = NULL;
 static char *rtsp_channel_name = NULL;
 
-static std::string PUBLISH_URL = "tcp://*:8888";
+static std::string PUBLISH_URL = "tcp://*:8101";
 static std::string PUBLISH_TOPIC = "jpeg: ";
 
-// static std::string SUB_URL = "tcp://127.0.0.1:8888";
+// static std::string SUB_URL = "tcp://127.0.0.1:8102";
 static std::string SUB_URL = "tcp://192.168.137.11:8889";
 static std::string SUB_TOPIC = "command: ";
 
@@ -74,6 +74,7 @@ static void savedCallback(std::string path, void* data){
     std::cout << "jpeg saved : " << path << std::endl;
     if(data != NULL){
         Communicator *comm = static_cast<Communicator *>(data);
+        comm->broadcast ("", "{\"cmd\":\"TakePhotoResult\",\"data\":{\"path\":\"/mnt/temp\",\"result\":\"success\"}}");
         comm->broadcast(PUBLISH_TOPIC, path);
     }
 };

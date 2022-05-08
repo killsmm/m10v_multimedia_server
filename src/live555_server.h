@@ -26,7 +26,7 @@ class Live555Server : public FrameConsumer {
         ~Live555Server();
         void start();
         void stop();
-        void onFrameReceivedCallback (void* address, std::uint64_t size);
+        void onFrameReceivedCallback (void* address, std::uint64_t size, void *extra_data);
     private:
         std::string streamName;
         RTSPServer *rtspServer;

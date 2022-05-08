@@ -26,7 +26,7 @@ Live555Server::~Live555Server() {
 
 
 
-void Live555Server::onFrameReceivedCallback(void* address, std::uint64_t size) {
+void Live555Server::onFrameReceivedCallback(void* address, std::uint64_t size, void *extra_data) {
     if(this->subSession->ipcuFramedSource != NULL){
         this->subSession->ipcuFramedSource->writeFrameToBuf((uint8_t *)address, size);
     }

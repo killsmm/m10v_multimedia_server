@@ -18,7 +18,7 @@ RawImgCapture::~RawImgCapture() {
     
 }
 
-void RawImgCapture::onFrameReceivedCallback(void* address, std::uint64_t size) {
+void RawImgCapture::onFrameReceivedCallback(void* address, std::uint64_t size,  void *extra_data) {
     std::time_t t = std::time(0);
     std::tm * now = std::localtime(&t); 
     char time_str[100] = {0};

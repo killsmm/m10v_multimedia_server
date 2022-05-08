@@ -12,7 +12,7 @@ extern "C"{
 }
 
 static int cb(const struct cif_stream_send* p, void *d){
-    std::cout << "frame cb start" << p->media.j.frame_no << std::endl;
+    std::cout << "frame cb start " << p->media.j.frame_no << std::endl;
 
     StreamReceiver* receiver = (StreamReceiver *)d;
     int ret = 0;
@@ -22,7 +22,7 @@ static int cb(const struct cif_stream_send* p, void *d){
     {
         // printf("c->streamType = %08x, stream_id = %d\n", c->streamType, c->streamId);
         if (c->streamType == p->Sub_Command && p->stream_id == c->streamId){
-            c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size);
+            c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size, (void *)&(p->media.j.exif));
         }
     }
     std::cout << "return to rtos\n" << p->media.j.frame_no << std::endl;
