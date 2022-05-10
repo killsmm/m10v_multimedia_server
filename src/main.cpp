@@ -37,6 +37,7 @@ static std::string PUBLISH_TOPIC = "jpeg: ";
 static std::string SUB_URL = "tcp://192.168.137.11:8889";
 static std::string SUB_TOPIC = "command: ";
 
+
 static YuvCapture *yuv_capture = NULL;
 static RawImgCapture *raw_capture = NULL;
 static JpegCapture *jpeg_capture = NULL;
@@ -58,7 +59,7 @@ static void command_handler(std::string cmd){
     std::cout << "cmd: " + cmd << std::endl;
     if (cmd.compare("start") == 0){
         media_recorder = new MediaRecorder(video_path);
-        media_recorder->start_record(AV_CODEC_ID_H264, 3840, 2160, "test.avi");
+        media_recorder->start_record(AV_CODEC_ID_H264, 1920, 1080, "test.avi");
         stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, 0, media_recorder);
     } else if (cmd.compare("stop") == 0){
         if(media_recorder != NULL){

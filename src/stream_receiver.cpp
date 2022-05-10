@@ -12,7 +12,6 @@ extern "C"{
 }
 
 static int cb(const struct cif_stream_send* p, void *d){
-    std::cout << "frame cb start " << p->media.j.frame_no << std::endl;
 
     StreamReceiver* receiver = (StreamReceiver *)d;
     int ret = 0;
@@ -25,7 +24,6 @@ static int cb(const struct cif_stream_send* p, void *d){
             c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size, (void *)&(p->media.j.exif));
         }
     }
-    std::cout << "return to rtos\n" << p->media.j.frame_no << std::endl;
     return ret;
 }
 
