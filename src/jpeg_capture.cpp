@@ -14,6 +14,8 @@ extern "C"{
     #include "jpeg-data.h"
 }
 
+static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
 JpegCapture::JpegCapture(std::string path){
     filePath = path;
     std::cout << "JpegCapture::JpegCapture filePath = " << filePath << std::endl;
@@ -25,6 +27,10 @@ JpegCapture::~JpegCapture() {
 }
 
 void JpegCapture::onFrameReceivedCallback(void* address, std::uint64_t size, void *extra_data) {
+    if(pthread_mutex_trylock(&lock) != 0){
+        std::cout << "jpeg try lock failed" << std::endl;
+        return;
+    }
     std::time_t t = std::time(0);
     std::tm * now = std::localtime(&t);
     uint64_t now_us = std::chrono::system_clock::now().time_since_epoch().count();
@@ -33,7 +39,7 @@ void JpegCapture::onFrameReceivedCallback(void* address, std::uint64_t size, voi
     std::string name = this->filePath + std::string("/") + std::string(JPEG_PREFIX_STRING) + 
                                 std::string(time_str) + std::to_string(now_us) +std::string(JPEG_SUFFIX_STRING);
 
-    std::cout << (int) extra_data << std::endl;    
+    // std::cout << (int) extra_data << std::endl;    
     T_BF_DCF_IF_EXIF_INFO *info = (T_BF_DCF_IF_EXIF_INFO*)(extra_data);
 
     if(saveJpegWithExif(address, size, *info, name.c_str()) == 0){
@@ -42,6 +48,7 @@ void JpegCapture::onFrameReceivedCallback(void* address, std::uint64_t size, voi
             onSavedCallback(name, onSavedCallbackData);
         }
     }
+    pthread_mutex_unlock(&lock);
 }
 
 void JpegCapture::setSavedCallback(SavedCallback cb, void* data){
@@ -66,9 +73,9 @@ static ExifEntry * new_exif_entry(ExifTag tag, ExifFormat fmt, uint8_t *data, ui
 
 bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_IF_EXIF_INFO info, const char *path)
 {
-    printf("exif size = %d\n", sizeof(info));
-    std::cout << "iso = " << info.iso_value << std::endl;
-    std::cout << "exp_time = " << info.exposure_time.nume << "/" << info.exposure_time.denomi << std::endl;
+    // printf("exif size = %d\n", sizeof(info));
+    // std::cout << "iso = " << info.iso_value << std::endl;
+    // std::cout << "exp_time = " << info.exposure_time.nume << "/" << info.exposure_time.denomi << std::endl;
 
     JPEGData *jpegData = jpeg_data_new_from_data((uint8_t *)address, size);
     
@@ -102,7 +109,7 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     exif_content_add_entry(content, exifEntryShutter);
 
     exif->ifd[EXIF_IFD_EXIF] = content;
-    exif_data_dump(exif);
+    // exif_data_dump(exif);
 
     jpeg_data_set_exif_data(jpegData, exif);
 
