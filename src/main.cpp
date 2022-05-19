@@ -10,9 +10,9 @@
 #include "json-c/json.h"
 #include "rtsp_streamer.h"
 #include "live555_server.h"
+#include "sei_encoder.h"
 
 //#define RTSP_TEST
-
 extern "C" {
      #include "ipcu_stream.h"
     #include "signal.h"
@@ -114,7 +114,7 @@ int main(int argc, char** argv){
     stream_receiver = new StreamReceiver();
     communicator = new Communicator(PUBLISH_URL, SUB_URL);
 
-
+    SeiEncoder::init();
 
     if (flag & FLAG_JPEG) {
         std::cout << "path = " << jpeg_path << std::endl;

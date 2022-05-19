@@ -5,6 +5,7 @@
 #include <sys/timeb.h>
 #include <fcntl.h>
 #include "space_data_reporter.h"
+#include "sei_encoder.h"
 
 extern "C"{
 // #include "libavformat/avformat.h"
@@ -32,39 +33,22 @@ MediaRecorder::~MediaRecorder() {
     pthread_spin_destroy(&spinLock);
 }
 
-typedef struct {
-    float longitude;
-    float latitude;
-    float altitude;
-    float pan;
-    float tilt;
-    float roll; 
-} SEI_DATA;
-uint8_t sei_head[23] = {0x00, 0x00, 0x00, 0x01, 0x06, 0x05, 0x28, 
-                        0x13, 0x9F, 0xB1, 0xA9, 0x44, 0x6A, 0x4D, 0xEC, 
-                        0x8C, 0xBF, 0x65, 0xB1, 0xE1, 0x2D, 0x2C, 0xFD};
 
-static SEI_DATA sei_data = {39.9042, 166.4074, 153.0000, 180.0000, 95.0000, 15.0000};
-
-
-static SEI_DATA *get_sei_data(){
-    sei_data.longitude += 0.0001;
-    sei_data.latitude += 0.0003;
-    sei_data.altitude += 0.001;
-    return &sei_data;
-}
 
 
 int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
-    SEI_DATA *s_data = get_sei_data();
-    void *sei = av_malloc(sizeof(sei_head) + sizeof(SEI_DATA) + size + 1);
-    memcpy((uint8_t *)sei, sei_head, sizeof(sei_head));
-    memcpy((uint8_t *)sei + sizeof(sei_head), (void*)s_data, sizeof(SEI_DATA));
-    *((uint8_t *)sei + sizeof(sei_head) + sizeof(SEI_DATA)) = 0x80;
-    memcpy((uint8_t *)sei + sizeof(sei_head) + sizeof(SEI_DATA) + 1, addr, size);
+    int sei_length = 0;
+    uint8_t *sei_data = SeiEncoder::getEncodedSei(&sei_length);
+    if(sei_length == 0 || sei_data == nullptr){
+        std::cout << "sei encoder not init" << std::endl;
+    }
+
+    void *frame_with_sei = av_malloc(size + sei_length);
+    memcpy((uint8_t *)frame_with_sei, sei_data, sei_length);
+    memcpy((uint8_t *)frame_with_sei + sei_length, addr, size);
 
     av_init_packet(&this->packet);
-	int ret = av_packet_from_data(&this->packet, (uint8_t *)sei, sizeof(sei_head) + sizeof(SEI_DATA) + size + 1);
+	int ret = av_packet_from_data(&this->packet, (uint8_t *)frame_with_sei, size + sei_length);
     if(ret != 0){
         std::cout << "av packet from data failed" << std::endl;
         return -1;
@@ -76,7 +60,7 @@ int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
     this->packet.dts = time_stamp;
     printf("addr = %08x size = %d \n", addr, size); 
     ret = av_write_frame(this->f_ctx, &this->packet);
-    av_free(sei);
+    av_free(frame_with_sei);
 
     if (ret != 0) {
         std::cout << "write frame failed\n" << std::endl;
