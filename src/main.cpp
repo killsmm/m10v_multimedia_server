@@ -34,8 +34,10 @@ static std::string PUBLISH_URL = "tcp://*:8101";
 static std::string PUBLISH_TOPIC = "jpeg: ";
 
 // static std::string SUB_URL = "tcp://127.0.0.1:8102";
-static std::string SUB_URL = "tcp://192.168.137.11:8889";
-static std::string SUB_TOPIC = "command: ";
+static std::string SUB_URL = "ipc:///tmp/gps";
+static std::string SUB_TOPIC = "";
+
+static std::string REP_URL = "tcp://*:8102";
 
 
 static YuvCapture *yuv_capture = NULL;
@@ -69,6 +71,35 @@ static void command_handler(std::string cmd){
             delete media_recorder;
         }
     }
+}
+
+static std::string getValueFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
+    json_object *tmp1;
+    json_object *tmp2;
+    if(!json_object_object_get_ex(json, level1.data(), &tmp1)){
+        return "";
+    }
+
+    if(level2 == ""){
+        const char *result = json_object_get_string(tmp1);
+        return std::string(result, strlen(result));
+    }
+
+    if(!json_object_object_get_ex(tmp1, level2.data(), &tmp2)){
+        return "";
+    }
+
+    if(level3 == ""){
+        const char *result = json_object_get_string(tmp2);
+        return std::string(result, strlen(result));
+    }
+
+    if(!json_object_object_get_ex(tmp2, level3.data(), &tmp1)){
+        return "";
+    }
+
+    const char *result = json_object_get_string(tmp1);
+    return std::string(result, strlen(result));
 }
 
 static void savedCallback(std::string path, void* data){
@@ -112,7 +143,7 @@ int main(int argc, char** argv){
     }
 
     stream_receiver = new StreamReceiver();
-    communicator = new Communicator(PUBLISH_URL, SUB_URL);
+    communicator = new Communicator(PUBLISH_URL, SUB_URL, REP_URL);
 
     SeiEncoder::init();
 
@@ -161,6 +192,7 @@ int main(int argc, char** argv){
     
     if (flag & FLAG_VIDEO) {
         std::cout << "video path = " << video_path << std::endl;
+        media_recorder = new MediaRecorder(video_path);
     }
 
     stream_receiver->start();
@@ -170,14 +202,56 @@ int main(int argc, char** argv){
     signal(SIGQUIT, signal_handler);
     signal(SIGABRT, signal_handler);
 
+
+
     std::string received_msg;
     while (!app_abort)
     {
-        if(communicator->receive(SUB_TOPIC, received_msg)){
-            std::string command = received_msg.substr(SUB_TOPIC.size(), received_msg.size() - SUB_TOPIC.size());
-            std::cout << command << std::endl;
-            command_handler(command);
+        if(communicator->receiveSub(SUB_TOPIC, received_msg)){
+            json_tokener *tok = json_tokener_new();
+            json_object *json = json_tokener_parse_ex(tok, received_msg.data(), received_msg.size());
+            if(getValueFromJson(json, "Cmd", "", "") == "GPS"){
+                SeiEncoder::setLocation(std::stof(getValueFromJson(json, "data", "location", "latitude")),
+                                        std::stof(getValueFromJson(json, "data", "location", "longitude")),
+                                        std::stof(getValueFromJson(json, "data", "location", "altitude")));
+                SeiEncoder::setAngles(std::stof(getValueFromJson(json, "data", "angles", "roll")),
+                                      std::stof(getValueFromJson(json, "data", "angles", "pitch")),
+                                      std::stof(getValueFromJson(json, "data", "angles", "yaw"))); 
+            }
         }
+
+        communicator->receiveCmd([](std::string s) -> bool{
+            json_tokener *tok = json_tokener_new();
+            json_object *json = json_tokener_parse_ex(tok, s.data(), s.size());
+            std::string cmd = getValueFromJson(json, "Cmd", "", "");
+            std::cout << "---cmd from request:" + cmd << std::endl;
+            if(cmd == "VideoStorage"){
+                media_recorder->setPath(getValueFromJson(json, "Cmd", "data", "path"));
+                media_recorder->setPrefix(getValueFromJson(json, "Cmd", "data", "prefix"));
+            }else if(cmd == "PhotoStorage"){
+                if(jpeg_capture != NULL){
+                    jpeg_capture->setPath(getValueFromJson(json, "Cmd", "data", "path"));
+                    jpeg_capture->setPrefix(getValueFromJson(json, "Cmd", "data", "prefix"));
+                }
+            }else if(cmd == "VideoStart"){
+                if(media_recorder->getRecordStatus() == RECORD_STATUS_RECORDING){
+                    std::cout << "error: is already recording" << std::endl;
+                    return false;
+                }
+                media_recorder->start_record(AV_CODEC_ID_H264, 1920, 1080, ".avi");
+                stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, 0, media_recorder);
+            }else if(cmd == "VideoStop"){
+                if(media_recorder->getRecordStatus() != RECORD_STATUS_RECORDING){
+                    std::cout << "error: is not recording" << std::endl;
+                    return false;
+                }
+                media_recorder->stop_record();
+                communicator->broadcast("record:", "over");
+                stream_receiver->removeConsumer(media_recorder);
+            }
+            return true;
+        });
+
         sleep(1);
     }
 

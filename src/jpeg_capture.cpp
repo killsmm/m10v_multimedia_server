@@ -19,7 +19,7 @@ static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 JpegCapture::JpegCapture(std::string path){
     filePath = path;
     std::cout << "JpegCapture::JpegCapture filePath = " << filePath << std::endl;
-
+    this->prefix = std::string(JPEG_DEFAULT_PREFIX_STRING);
 }
 
 JpegCapture::~JpegCapture() {
@@ -36,10 +36,10 @@ void JpegCapture::onFrameReceivedCallback(void* address, std::uint64_t size, voi
     uint64_t now_us = std::chrono::system_clock::now().time_since_epoch().count();
     char time_str[100] = {0};
     std::strftime(time_str, 100, "%y%m%d%H%M%S", now);
-    std::string name = this->filePath + std::string("/") + std::string(JPEG_PREFIX_STRING) + 
-                                std::string(time_str) + std::to_string(now_us) +std::string(JPEG_SUFFIX_STRING);
+    std::string name = this->filePath + std::string("/") + this->prefix + 
+                                std::string(time_str) + std::to_string(now_us) + std::string(JPEG_SUFFIX_STRING);
 
-    // std::cout << (int) extra_data << std::endl;    
+    // std::cout << (int) extra_data << std::endl;
     T_BF_DCF_IF_EXIF_INFO *info = (T_BF_DCF_IF_EXIF_INFO*)(extra_data);
 
     if(saveJpegWithExif(address, size, *info, name.c_str()) == 0){
@@ -58,6 +58,10 @@ void JpegCapture::setSavedCallback(SavedCallback cb, void* data){
 
 void JpegCapture::setPath(std::string path){
     this->filePath = path;
+}
+
+void JpegCapture::setPrefix(std::string prefix){
+    this->prefix = prefix;
 }
 
 

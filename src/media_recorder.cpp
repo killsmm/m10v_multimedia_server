@@ -25,7 +25,9 @@ static int64_t get_timestamp(AVRational time_base){
 MediaRecorder::MediaRecorder(std::string path){
     pthread_spin_init(&spinLock, PTHREAD_PROCESS_PRIVATE);
     this->record_path = path;
+    this->prefix = "video";
     this->avi_has_gps_stream = false;
+    this->recordStatus = RECORD_STATUS_READY;
     av_register_all();
 }
 
@@ -85,8 +87,14 @@ int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
 }
 
 int MediaRecorder::start_record(AVCodecID video_codec_id, int width, int height, std::string file_name) {
+    
     int ret = 0;
-    std::string full_path = this->record_path + "/" + file_name;
+    std::time_t t = std::time(0);
+    std::tm * now = std::localtime(&t);
+    char time_str[100] = {0};
+    std::strftime(time_str, 100, "%y%m%d%H%M%S", now);
+
+    std::string full_path = this->record_path + "/" + this->prefix + std::string(time_str) + file_name;
     std::cout << "full path:" + full_path << std::endl;
     ret = avformat_alloc_output_context2(&this->f_ctx, NULL, NULL, full_path.c_str());
     if(ret != 0){
@@ -153,11 +161,22 @@ void MediaRecorder::onFrameReceivedCallback(void* address, std::uint64_t size, v
     pthread_spin_unlock(&spinLock);
 }
 
-AVStream * MediaRecorder::createGPSStream(AVFormatContext *ctx){
+AVStream * MediaRecorder::createGPSStream(AVFormatContext *ctx) {
     AVStream *stream = avformat_new_stream(ctx, NULL);
     stream->codecpar->codec_id = AV_CODEC_ID_BIN_DATA;
     stream->codecpar->codec_type = AVMEDIA_TYPE_DATA;
     stream->codecpar->sample_rate = 30;
     stream->codecpar->bits_per_raw_sample = 32 * 8;
     return stream;
+}
+RECORD_STATUS MediaRecorder::getRecordStatus() {
+    return this->recordStatus;    
+}
+
+void MediaRecorder::setPath(std::string path) {
+    this->record_path = path;
+}
+
+void MediaRecorder::setPrefix(std::string prefix) {
+    this->prefix = prefix;
 }
