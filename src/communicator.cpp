@@ -1,5 +1,5 @@
 #include "communicator.h"
-
+#include <iostream>
 
 Communicator::Communicator(std::string pub_url, std::string sub_url, std::string req_url) : zmqContext(), publisher(zmqContext, zmq::socket_type::pub), 
                                 subscriber(zmqContext, zmq::socket_type::sub), cmd_server(zmqContext, zmq::socket_type::rep) {

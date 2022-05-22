@@ -20,6 +20,7 @@ private:
     static float *pitch;
     static float *yaw; 
     static uint8_t *encodedData;
+    static uint8_t *addShellEncodedData;
 };
 
 #endif // !SEI_ENCODER_H

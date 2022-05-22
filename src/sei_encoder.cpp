@@ -1,5 +1,7 @@
 #include "sei_encoder.h"
 #include <cstring>
+#include <vector>
+#include <iostream>
 
 float *SeiEncoder::longitude = nullptr;
 float *SeiEncoder::latitude = nullptr;
@@ -8,11 +10,14 @@ float *SeiEncoder::roll = nullptr;
 float *SeiEncoder::pitch = nullptr;
 float *SeiEncoder::yaw = nullptr;
 uint8_t *SeiEncoder::encodedData = nullptr;
-
+uint8_t *SeiEncoder::addShellEncodedData = nullptr;
 
 void SeiEncoder::init() {
     if (SeiEncoder::encodedData == nullptr){
         SeiEncoder::encodedData = new uint8_t[SEI_BUF_LENGTH];
+    }
+    if (SeiEncoder::addShellEncodedData == nullptr){
+        SeiEncoder::addShellEncodedData = new uint8_t[128];
     }
     SeiEncoder::latitude = reinterpret_cast<float*>(SeiEncoder::encodedData + 23);
     SeiEncoder::longitude = reinterpret_cast<float*>(SeiEncoder::encodedData + 23 + 4);
@@ -34,7 +39,25 @@ void SeiEncoder::deinit(){
 }
 
 uint8_t *SeiEncoder::getEncodedSei(int *length) {
-    *length = 23 + 24;
+    int zero_counter = 0;
+    std::vector<uint8_t> a;
+    for(int i = 23; i < (23 + 24); i++){
+        a.push_back(SeiEncoder::encodedData[i]);
+        if(SeiEncoder::encodedData[i] == 0x00){
+            zero_counter++;
+        }else{
+            zero_counter = 0;
+        }
+        if(zero_counter == 2){
+            a.push_back(0x03);
+            zero_counter = 0;
+        }
+        
+    }
+    memcpy(SeiEncoder::addShellEncodedData, SeiEncoder::encodedData, 23);
+    memcpy(SeiEncoder::addShellEncodedData + 23, a.data(), a.size());
+    *length = a.size() + 23;
+    std::cout << "sei length = " << *length << std::endl;
     return SeiEncoder::encodedData;
 }
 

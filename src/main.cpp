@@ -76,7 +76,9 @@ static void command_handler(std::string cmd){
 static std::string getValueFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
     json_object *tmp1;
     json_object *tmp2;
+    std::cout << json_object_to_json_string(json) << std::endl;
     if(!json_object_object_get_ex(json, level1.data(), &tmp1)){
+        std::cout << "cannot find cmd" << std::endl;
         return "";
     }
 
@@ -223,7 +225,7 @@ int main(int argc, char** argv){
         communicator->receiveCmd([](std::string s) -> bool{
             json_tokener *tok = json_tokener_new();
             json_object *json = json_tokener_parse_ex(tok, s.data(), s.size());
-            std::string cmd = getValueFromJson(json, "Cmd", "", "");
+            std::string cmd = getValueFromJson(json, "cmd", "", "");
             std::cout << "---cmd from request:" + cmd << std::endl;
             if(cmd == "VideoStorage"){
                 media_recorder->setPath(getValueFromJson(json, "Cmd", "data", "path"));
@@ -248,6 +250,8 @@ int main(int argc, char** argv){
                 media_recorder->stop_record();
                 communicator->broadcast("record:", "over");
                 stream_receiver->removeConsumer(media_recorder);
+            }else{
+                return false;
             }
             return true;
         });
