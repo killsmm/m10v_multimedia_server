@@ -11,6 +11,7 @@
 #include "rtsp_streamer.h"
 #include "live555_server.h"
 #include "sei_encoder.h"
+#include <regex>
 
 //#define RTSP_TEST
 extern "C" {
@@ -76,7 +77,6 @@ static void command_handler(std::string cmd){
 static std::string getValueFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
     json_object *tmp1;
     json_object *tmp2;
-    std::cout << json_object_to_json_string(json) << std::endl;
     if(!json_object_object_get_ex(json, level1.data(), &tmp1)){
         std::cout << "cannot find cmd" << std::endl;
         return "";
@@ -236,12 +236,49 @@ int main(int argc, char** argv){
                     jpeg_capture->setPrefix(getValueFromJson(json, "Cmd", "data", "prefix"));
                 }
             }else if(cmd == "VideoStart"){
+                int width = 1920;
+                int height = 1080;
+                int stream_id = 0;
+                AVCodecID codec_id = AV_CODEC_ID_H264;
+                std::string resolution = getValueFromJson(json, "data", "resolve", "");
+                std::cout << "resolution " << resolution << std::endl;
+                if(resolution != ""){
+                    std::regex re("(\\d+)x(\\d+)");
+                    std::smatch match;
+                    std::regex_match(resolution, match, re);
+                    if(match.size() == 3){
+                        width =  std::stoi(match.str(1));
+                        height = std::stoi(match.str(2)); 
+                    }
+                }
+                std::string stream_type = getValueFromJson(json, "data", "format", "");
+                std::cout << "stream_type " << stream_type << std::endl;
+                if(stream_type == "H264_0"){
+                    stream_id = 0;
+                    codec_id = AV_CODEC_ID_H264;
+                }else if(stream_type == "H264_1"){
+                    stream_id = 1;
+                    codec_id = AV_CODEC_ID_H264;
+                }else if(stream_type == "H264_2"){
+                    stream_id = 2;
+                    codec_id = AV_CODEC_ID_H264;
+                }else if(stream_type == "H265"){
+                    stream_id = 8;
+                    codec_id = AV_CODEC_ID_H265;
+                }else{
+                    stream_id = 0;
+                    codec_id = AV_CODEC_ID_H264;
+                }
+
+                std::cout << "width, height = " << width << "," << height << std::endl;
+                std::cout << "codec_id = " << codec_id << " stream_id == " << stream_id << std::endl;
+
                 if(media_recorder->getRecordStatus() == RECORD_STATUS_RECORDING){
                     std::cout << "error: is already recording" << std::endl;
                     return false;
                 }
-                media_recorder->start_record(AV_CODEC_ID_H264, 1920, 1080, ".avi");
-                stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, 0, media_recorder);
+                media_recorder->start_record(codec_id, width, height, ".avi");
+                stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, stream_id, media_recorder);
             }else if(cmd == "VideoStop"){
                 if(media_recorder->getRecordStatus() != RECORD_STATUS_RECORDING){
                     std::cout << "error: is not recording" << std::endl;
