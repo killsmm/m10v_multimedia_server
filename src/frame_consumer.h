@@ -8,7 +8,8 @@ private:
 public:
     FrameConsumer();
     ~FrameConsumer();
-    virtual void onFrameReceivedCallback (void* address, std::uint64_t size) = 0;
+    static bool save_frame_to_file(const char *fn, void* addr, unsigned long size);
+    virtual void onFrameReceivedCallback (void* address, std::uint64_t size, void *extra_data) = 0;
 };
 
 #endif

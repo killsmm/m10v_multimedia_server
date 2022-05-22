@@ -1,31 +1,29 @@
-#ifndef JPEG_CAPTURE_H
-#define JPEG_CAPTURE_H
+#ifndef YUV_CAPTURE_H
+#define YUV_CAPTURE_H
 
 #include "frame_consumer.h"
-#include "dcf_if.h"
 
-#define JPEG_DEFAULT_PREFIX_STRING "img"
-#define JPEG_SUFFIX_STRING ".jpg"
+#define YUV_PREFIX_STRING "img"
+#define YUV_SUFFIX_STRING ".yuv"
 
 typedef void (*SavedCallback)(std::string path, void *data);
 
-class JpegCapture : public FrameConsumer
+class YuvCapture : public FrameConsumer
 {
 public:
-    JpegCapture(std::string path = ".");
-    ~JpegCapture();
+    YuvCapture(std::string path = ".");
+    ~YuvCapture();
     int start();
     int stop();
     void onFrameReceivedCallback(void *address, std::uint64_t size, void *extra_data);
     void setSavedCallback(SavedCallback cb, void *data = NULL);
     void setPath(std::string path);
-    void setPrefix(std::string prefix);
-    bool saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_IF_EXIF_INFO info, const char *path);
 private:
     SavedCallback onSavedCallback;
     void *onSavedCallbackData;
     std::string filePath;
-    std::string prefix;
+
 };
 
-#endif
+#endif // DEBUG
+
