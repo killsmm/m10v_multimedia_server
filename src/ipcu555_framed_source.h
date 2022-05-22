@@ -23,7 +23,7 @@ public:
     // ~IPCU555FramedSource();
 
     static IPCU555FramedSource* createNew(UsageEnvironment& env, void *data);
-    int writeFrameToBuf(uint8_t *addr, uint64_t size);
+    int writeFrameToBuf(uint8_t *addr, uint64_t size, uint8_t *sei, uint32_t sei_size);
     void doGetNextFrame();
     static void deliverFrame0(void* clientData);
 };

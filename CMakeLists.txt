@@ -57,6 +57,7 @@ TARGET_LINK_LIBRARIES(
 	zmq
 	gstreamer-1.0
 	exif
+	json-c
 	/home/zhouxinliang/software_projects/m10v_app_layer/m10v_multimedia_server/libliveMedia.a
 	/home/zhouxinliang/software_projects/m10v_app_layer/m10v_multimedia_server/libBasicUsageEnvironment.a
 	/home/zhouxinliang/software_projects/m10v_app_layer/m10v_multimedia_server/libUsageEnvironment.a

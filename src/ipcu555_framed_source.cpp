@@ -11,7 +11,7 @@ IPCU555FramedSource* IPCU555FramedSource::createNew(UsageEnvironment& env, void 
     return new IPCU555FramedSource(env, data);
 }
 
-int IPCU555FramedSource::writeFrameToBuf(uint8_t *addr, uint64_t size)
+int IPCU555FramedSource::writeFrameToBuf(uint8_t *addr, uint64_t size, uint8_t *sei, uint32_t sei_size)
 {
     
     if (size > BUFFER_SIZE) {
@@ -23,9 +23,9 @@ int IPCU555FramedSource::writeFrameToBuf(uint8_t *addr, uint64_t size)
     }
     // std::cout << this->frame_size << " " << this->frame_buffer << std::endl;
     // printf("frame_buffer address: %08x\n", frame_buffer);
-    
-    memmove(this->frame_buffer, addr, size);
-    this->frame_size = size;
+    memmove(this->frame_buffer, sei, sei_size);
+    memmove(this->frame_buffer + sei_size, addr, size);
+    this->frame_size = size + sei_size;
     pthread_mutex_unlock(&lock);
     signalNewFrameData();
     return 0;

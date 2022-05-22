@@ -10,9 +10,10 @@
 #include "json-c/json.h"
 #include "rtsp_streamer.h"
 #include "live555_server.h"
+#include "sei_encoder.h"
+#include <regex>
 
 //#define RTSP_TEST
-
 extern "C" {
      #include "ipcu_stream.h"
     #include "signal.h"
@@ -34,8 +35,10 @@ static std::string PUBLISH_URL = "tcp://*:8101";
 static std::string PUBLISH_TOPIC = "jpeg: ";
 
 // static std::string SUB_URL = "tcp://127.0.0.1:8102";
-static std::string SUB_URL = "tcp://192.168.137.11:8889";
-static std::string SUB_TOPIC = "command: ";
+static std::string SUB_URL = "ipc:///tmp/gps";
+static std::string SUB_TOPIC = "";
+
+static std::string REP_URL = "tcp://*:8102";
 
 
 static YuvCapture *yuv_capture = NULL;
@@ -69,6 +72,36 @@ static void command_handler(std::string cmd){
             delete media_recorder;
         }
     }
+}
+
+static std::string getValueFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
+    json_object *tmp1;
+    json_object *tmp2;
+    if(!json_object_object_get_ex(json, level1.data(), &tmp1)){
+        std::cout << "cannot find cmd" << std::endl;
+        return "";
+    }
+
+    if(level2 == ""){
+        const char *result = json_object_get_string(tmp1);
+        return std::string(result, strlen(result));
+    }
+
+    if(!json_object_object_get_ex(tmp1, level2.data(), &tmp2)){
+        return "";
+    }
+
+    if(level3 == ""){
+        const char *result = json_object_get_string(tmp2);
+        return std::string(result, strlen(result));
+    }
+
+    if(!json_object_object_get_ex(tmp2, level3.data(), &tmp1)){
+        return "";
+    }
+
+    const char *result = json_object_get_string(tmp1);
+    return std::string(result, strlen(result));
 }
 
 static void savedCallback(std::string path, void* data){
@@ -112,9 +145,9 @@ int main(int argc, char** argv){
     }
 
     stream_receiver = new StreamReceiver();
-    communicator = new Communicator(PUBLISH_URL, SUB_URL);
+    communicator = new Communicator(PUBLISH_URL, SUB_URL, REP_URL);
 
-
+    SeiEncoder::init();
 
     if (flag & FLAG_JPEG) {
         std::cout << "path = " << jpeg_path << std::endl;
@@ -161,6 +194,7 @@ int main(int argc, char** argv){
     
     if (flag & FLAG_VIDEO) {
         std::cout << "video path = " << video_path << std::endl;
+        media_recorder = new MediaRecorder(video_path);
     }
 
     stream_receiver->start();
@@ -170,14 +204,95 @@ int main(int argc, char** argv){
     signal(SIGQUIT, signal_handler);
     signal(SIGABRT, signal_handler);
 
+
+
     std::string received_msg;
     while (!app_abort)
     {
-        if(communicator->receive(SUB_TOPIC, received_msg)){
-            std::string command = received_msg.substr(SUB_TOPIC.size(), received_msg.size() - SUB_TOPIC.size());
-            std::cout << command << std::endl;
-            command_handler(command);
+        if(communicator->receiveSub(SUB_TOPIC, received_msg)){
+            json_tokener *tok = json_tokener_new();
+            json_object *json = json_tokener_parse_ex(tok, received_msg.data(), received_msg.size());
+            if(getValueFromJson(json, "Cmd", "", "") == "GPS"){
+                SeiEncoder::setLocation(std::stof(getValueFromJson(json, "data", "location", "latitude")),
+                                        std::stof(getValueFromJson(json, "data", "location", "longitude")),
+                                        std::stof(getValueFromJson(json, "data", "location", "altitude")));
+                SeiEncoder::setAngles(std::stof(getValueFromJson(json, "data", "angles", "roll")),
+                                      std::stof(getValueFromJson(json, "data", "angles", "pitch")),
+                                      std::stof(getValueFromJson(json, "data", "angles", "yaw"))); 
+            }
         }
+
+        communicator->receiveCmd([](std::string s) -> bool{
+            json_tokener *tok = json_tokener_new();
+            json_object *json = json_tokener_parse_ex(tok, s.data(), s.size());
+            std::string cmd = getValueFromJson(json, "cmd", "", "");
+            std::cout << "---cmd from request:" + cmd << std::endl;
+            if(cmd == "VideoStorage"){
+                media_recorder->setPath(getValueFromJson(json, "Cmd", "data", "path"));
+                media_recorder->setPrefix(getValueFromJson(json, "Cmd", "data", "prefix"));
+            }else if(cmd == "PhotoStorage"){
+                if(jpeg_capture != NULL){
+                    jpeg_capture->setPath(getValueFromJson(json, "Cmd", "data", "path"));
+                    jpeg_capture->setPrefix(getValueFromJson(json, "Cmd", "data", "prefix"));
+                }
+            }else if(cmd == "VideoStart"){
+                int width = 1920;
+                int height = 1080;
+                int stream_id = 0;
+                AVCodecID codec_id = AV_CODEC_ID_H264;
+                std::string resolution = getValueFromJson(json, "data", "resolve", "");
+                std::cout << "resolution " << resolution << std::endl;
+                if(resolution != ""){
+                    std::regex re("(\\d+)x(\\d+)");
+                    std::smatch match;
+                    std::regex_match(resolution, match, re);
+                    if(match.size() == 3){
+                        width =  std::stoi(match.str(1));
+                        height = std::stoi(match.str(2)); 
+                    }
+                }
+                std::string stream_type = getValueFromJson(json, "data", "format", "");
+                std::cout << "stream_type " << stream_type << std::endl;
+                if(stream_type == "H264_0"){
+                    stream_id = 0;
+                    codec_id = AV_CODEC_ID_H264;
+                }else if(stream_type == "H264_1"){
+                    stream_id = 1;
+                    codec_id = AV_CODEC_ID_H264;
+                }else if(stream_type == "H264_2"){
+                    stream_id = 2;
+                    codec_id = AV_CODEC_ID_H264;
+                }else if(stream_type == "H265"){
+                    stream_id = 8;
+                    codec_id = AV_CODEC_ID_H265;
+                }else{
+                    stream_id = 0;
+                    codec_id = AV_CODEC_ID_H264;
+                }
+
+                std::cout << "width, height = " << width << "," << height << std::endl;
+                std::cout << "codec_id = " << codec_id << " stream_id == " << stream_id << std::endl;
+
+                if(media_recorder->getRecordStatus() == RECORD_STATUS_RECORDING){
+                    std::cout << "error: is already recording" << std::endl;
+                    return false;
+                }
+                media_recorder->start_record(codec_id, width, height, ".avi");
+                stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, stream_id, media_recorder);
+            }else if(cmd == "VideoStop"){
+                if(media_recorder->getRecordStatus() != RECORD_STATUS_RECORDING){
+                    std::cout << "error: is not recording" << std::endl;
+                    return false;
+                }
+                media_recorder->stop_record();
+                communicator->broadcast("record:", "over");
+                stream_receiver->removeConsumer(media_recorder);
+            }else{
+                return false;
+            }
+            return true;
+        });
+
         sleep(1);
     }
 
