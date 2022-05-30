@@ -12,6 +12,7 @@ class Communicator{
         void broadcast(std::string topic, std::string content);
         bool receiveSub(std::string topic, std::string &str);
         bool receiveCmd(RecvCallback cb);
+
     private:
         zmq::context_t zmqContext;
         zmq::socket_t publisher;

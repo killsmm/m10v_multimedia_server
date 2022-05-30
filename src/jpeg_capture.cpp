@@ -9,6 +9,8 @@
 #include <libexif/exif-data.h>
 #include <libexif/exif-utils.h>
 #include <libexif/exif-loader.h>
+#include <cstring>
+#include "device_status.h"
 
 extern "C"{
     #include "jpeg-data.h"
@@ -65,15 +67,16 @@ void JpegCapture::setPrefix(std::string prefix){
 }
 
 
-static ExifEntry * new_exif_entry(ExifTag tag, ExifFormat fmt, uint8_t *data, uint32_t size){
+static void new_exif_entry(ExifContent *content, ExifTag tag, ExifFormat fmt, uint8_t *data, uint32_t component_number){
     ExifEntry * entry = exif_entry_new();
     entry->tag = tag;
     entry->format = fmt;
-    entry->components = 1;
-    entry->size = size;
+    entry->components = component_number;
+    entry->size = exif_format_get_size(fmt) * component_number;
     entry->data = data;
-    return entry;
+    exif_content_add_entry(content, entry);
 }
+
 
 bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_IF_EXIF_INFO info, const char *path)
 {
@@ -97,9 +100,8 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     uint32_t iso_data_size = exif_format_get_size(EXIF_FORMAT_SHORT);
     uint8_t iso_data[iso_data_size];
     exif_set_short(iso_data, byteOrder, info.iso_value);
-    ExifEntry * exifEntryISO = new_exif_entry(EXIF_TAG_ISO_SPEED_RATINGS, EXIF_FORMAT_SHORT, 
-                                                iso_data, iso_data_size);
-    exif_content_add_entry(content, exifEntryISO);
+    new_exif_entry(content, EXIF_TAG_ISO_SPEED_RATINGS, EXIF_FORMAT_SHORT, 
+                                                iso_data, 1);
 
     /* exposure time */
     uint32_t shutter_speed_data_size = exif_format_get_size(EXIF_FORMAT_RATIONAL);
@@ -108,9 +110,41 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
                                                 .numerator = info.exposure_time.nume,
                                                 .denominator = info.exposure_time.denomi
                                                 });
-    ExifEntry * exifEntryShutter = new_exif_entry(EXIF_TAG_EXPOSURE_TIME, EXIF_FORMAT_RATIONAL, 
-                                                    shutter_speed_data, shutter_speed_data_size);    
-    exif_content_add_entry(content, exifEntryShutter);
+    new_exif_entry(content, EXIF_TAG_EXPOSURE_TIME, EXIF_FORMAT_RATIONAL, 
+                                                    shutter_speed_data, 1);
+    
+    /* metring mode */
+    uint8_t metering_mode[2];
+    exif_set_short(metering_mode, byteOrder, info.metering);
+    new_exif_entry(content, EXIF_TAG_METERING_MODE, EXIF_FORMAT_SHORT, metering_mode, 1);
+
+    /* camera make */
+    char* make = "Feituo";
+    new_exif_entry(content, EXIF_TAG_MAKE, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(make), strlen(make));
+
+    /* camera model */
+    char* model = "S571";
+    new_exif_entry(content, EXIF_TAG_MODEL, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(model), strlen(model));
+
+    char* software_version = "0.1.2";
+    new_exif_entry(content, EXIF_TAG_SOFTWARE, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(software_version), strlen(software_version));
+
+    /* shutter number */
+    struct maker_note {
+        uint32_t shutter_count; 
+        float cmos_temperature; // degree
+        float input_voltage;
+        int32_t noise_reduction_strength; // 0 - 4 low to high
+        int32_t jpeg_quality_level; // 0 - 4 low to high 0 for 70, 1 for 80, 2 for 90, 3 for 100
+        int32_t shutter_mode; // 0 for electrical , 1 for mechnical
+    } m_note;
+
+    m_note.shutter_count = DeviceStatus::shutter_count; //from broadcast
+    m_note.cmos_temperature = DeviceStatus::cmos_temperature; //from broadcast
+    m_note.input_voltage = DeviceStatus::input_voltage; //from broadcast
+    m_note.noise_reduction_strength = DeviceStatus::noise_reduction_strength; //from broadcast
+    m_note.jpeg_quality_level = DeviceStatus::jpeg_quality_level; //from broadcast
+    m_note.shutter_mode = DeviceStatus::shutter_mode;  //from broadcast
 
     exif->ifd[EXIF_IFD_EXIF] = content;
     // exif_data_dump(exif);
