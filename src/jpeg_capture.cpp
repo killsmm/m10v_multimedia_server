@@ -11,6 +11,7 @@
 #include <libexif/exif-loader.h>
 #include <cstring>
 #include "device_status.h"
+#include "sei_encoder.h"
 
 extern "C"{
     #include "jpeg-data.h"
@@ -119,14 +120,14 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     new_exif_entry(content, EXIF_TAG_METERING_MODE, EXIF_FORMAT_SHORT, metering_mode, 1);
 
     /* camera make */
-    char* make = "Feituo";
+    char make[] = "Feituo";
     new_exif_entry(content, EXIF_TAG_MAKE, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(make), strlen(make));
 
     /* camera model */
-    char* model = "S571";
+    char model[] = "S571";
     new_exif_entry(content, EXIF_TAG_MODEL, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(model), strlen(model));
 
-    char* software_version = "0.1.2";
+    char software_version[] = "v0.1.2";
     new_exif_entry(content, EXIF_TAG_SOFTWARE, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(software_version), strlen(software_version));
 
     /* shutter number */
@@ -146,8 +147,37 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     m_note.jpeg_quality_level = DeviceStatus::jpeg_quality_level; //from broadcast
     m_note.shutter_mode = DeviceStatus::shutter_mode;  //from broadcast
 
+    new_exif_entry(content, EXIF_TAG_MAKER_NOTE, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(&m_note), sizeof(m_note));
+
     exif->ifd[EXIF_IFD_EXIF] = content;
+
+/* GPS  */
+    ExifContent *gps_content = exif_content_new();
+    ExifRational tmp = {0};
+
+    printf("%f, %f, %f\n", *SeiEncoder::altitude, *SeiEncoder::latitude, *SeiEncoder::longitude);
+
+    uint8_t altitude_data[16];
+    tmp.denominator = 1000000;
+    tmp.numerator = *SeiEncoder::altitude * 1000000;
+    exif_set_rational(altitude_data, byteOrder, tmp);
+    new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_ALTITUDE, EXIF_FORMAT_RATIONAL, altitude_data, 1);
+
+    uint8_t longitude_data[16];
+    tmp.denominator = 1000000;
+    tmp.numerator = *SeiEncoder::longitude * 1000000;
+    exif_set_rational(longitude_data, byteOrder, tmp);
+    new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_LONGITUDE, EXIF_FORMAT_RATIONAL, longitude_data, 1);
+
+    uint8_t latitude_data[16];
+    tmp.denominator = 1000000;
+    tmp.numerator = *SeiEncoder::latitude * 1000000;
+    exif_set_rational(latitude_data, byteOrder, tmp);
+    new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_LATITUDE, EXIF_FORMAT_RATIONAL, latitude_data, 1);
+
+    exif->ifd[EXIF_IFD_GPS] = gps_content;
     // exif_data_dump(exif);
+/* GPS END */
 
     jpeg_data_set_exif_data(jpegData, exif);
 

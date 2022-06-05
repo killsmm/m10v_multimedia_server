@@ -32,14 +32,7 @@ static char *video_path = NULL;
 static char *jpeg_path = NULL;
 static char *rtsp_channel_name = NULL;
 
-static std::string PUBLISH_URL = "tcp://*:8101";
-static std::string PUBLISH_TOPIC = "jpeg: ";
 
-// static std::string SUB_URL = "tcp://127.0.0.1:8102";
-static std::string SUB_URL = "ipc:///tmp/gps";
-static std::string SUB_TOPIC = "";
-
-static std::string REP_URL = "tcp://*:8102";
 
 
 static YuvCapture *yuv_capture = NULL;
@@ -121,7 +114,7 @@ static void savedCallback(std::string path, void* data){
     if(data != NULL){
         Communicator *comm = static_cast<Communicator *>(data);
         comm->broadcast ("", "{\"cmd\":\"TakePhotoResult\",\"data\":{\"path\":\"/mnt/temp\",\"result\":\"success\"}}");
-        comm->broadcast(PUBLISH_TOPIC, path);
+        comm->broadcast("jpeg: ", path);
     }
 };
 
@@ -157,7 +150,7 @@ int main(int argc, char** argv){
     }
 
     stream_receiver = new StreamReceiver();
-    communicator = new Communicator(PUBLISH_URL, SUB_URL, REP_URL);
+    communicator = new Communicator();
 
     SeiEncoder::init();
 
@@ -211,7 +204,7 @@ int main(int argc, char** argv){
 
     stream_receiver->start();
 
-    signal(SIGINT, signal_handler);    
+    signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
     signal(SIGQUIT, signal_handler);
     signal(SIGABRT, signal_handler);
@@ -221,7 +214,7 @@ int main(int argc, char** argv){
     std::string received_msg;
     while (!app_abort)
     {
-        if(communicator->receiveSub(SUB_TOPIC, received_msg)){
+        if(communicator->receiveSub(received_msg)){
             json_tokener *tok = json_tokener_new();
             json_object *json = json_tokener_parse_ex(tok, received_msg.data(), received_msg.size());
             std::string cmd = getValueFromJson(json, "cmd", "", "");
@@ -242,9 +235,9 @@ int main(int argc, char** argv){
             }else if(cmd == "workStatus"){
                 DeviceStatus::shutter_mode = getNumberFromJson(json, "data", "shutter_mode", "");
                 std::cout << "shutter_mode = " << DeviceStatus::shutter_mode << std::endl;
-                DeviceStatus::noise_reduction_strength = std::stoi(getValueFromJson(json, "data", "noise_reduction_strength", ""));
-                DeviceStatus::jpeg_quality_level = std::stoi(getValueFromJson(json, "data", "photo_resolve", ""));
-                DeviceStatus::shutter_count = std::stoi(getValueFromJson(json, "data", "shutter_count", "count1"));
+                // DeviceStatus::noise_reduction_strength = std::stoi(getValueFromJson(json, "data", "noise_reduction_strength", ""));
+                // DeviceStatus::jpeg_quality_level = std::stoi(getValueFromJson(json, "data", "photo_resolve", ""));
+                // DeviceStatus::shutter_count = std::stoi(getValueFromJson(json, "data", "shutter_count", "count1"));
             }
         }
 
