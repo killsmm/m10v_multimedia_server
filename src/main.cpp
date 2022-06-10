@@ -235,9 +235,17 @@ int main(int argc, char** argv){
             }else if(cmd == "workStatus"){
                 DeviceStatus::shutter_mode = getNumberFromJson(json, "data", "shutter_mode", "");
                 std::cout << "shutter_mode = " << DeviceStatus::shutter_mode << std::endl;
-                // DeviceStatus::noise_reduction_strength = std::stoi(getValueFromJson(json, "data", "noise_reduction_strength", ""));
-                // DeviceStatus::jpeg_quality_level = std::stoi(getValueFromJson(json, "data", "photo_resolve", ""));
-                // DeviceStatus::shutter_count = std::stoi(getValueFromJson(json, "data", "shutter_count", "count1"));
+                DeviceStatus::noise_reduction_strength = std::stoi(getValueFromJson(json, "data", "noise_reduction_strength", ""));
+                uint32_t jpeg_quality = std::stoi(getValueFromJson(json, "data", "photo_resolve", ""));
+                if(jpeg_quality == 100){
+                    DeviceStatus::jpeg_quality_level = 2;
+                }else if(jpeg_quality > 90 && jpeg_quality < 100){
+                    DeviceStatus::jpeg_quality_level = 1;
+                }else{
+                    DeviceStatus::jpeg_quality_level = 0;
+                }
+                
+                DeviceStatus::shutter_count = std::stoi(getValueFromJson(json, "data", "shutter_count", "count1"));
             }
         }
 
