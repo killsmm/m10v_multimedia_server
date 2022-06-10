@@ -4,7 +4,7 @@
 #include "frame_consumer.h"
 #include "dcf_if.h"
 
-#define JPEG_DEFAULT_PREFIX_STRING "img"
+#define JPEG_DEFAULT_PREFIX_STRING "FTS-"
 #define JPEG_SUFFIX_STRING ".jpg"
 
 typedef void (*SavedCallback)(std::string path, void *data);

@@ -12,6 +12,7 @@
 #include "live555_server.h"
 #include "sei_encoder.h"
 #include <regex>
+#include "device_status.h"
 
 //#define RTSP_TEST
 extern "C" {
@@ -31,14 +32,7 @@ static char *video_path = NULL;
 static char *jpeg_path = NULL;
 static char *rtsp_channel_name = NULL;
 
-static std::string PUBLISH_URL = "tcp://*:8101";
-static std::string PUBLISH_TOPIC = "jpeg: ";
 
-// static std::string SUB_URL = "tcp://127.0.0.1:8102";
-static std::string SUB_URL = "ipc:///tmp/gps";
-static std::string SUB_TOPIC = "";
-
-static std::string REP_URL = "tcp://*:8102";
 
 
 static YuvCapture *yuv_capture = NULL;
@@ -56,22 +50,6 @@ static void print_help() {
 
 static void signal_handler(int signal) {
     app_abort = true;
-}
-
-static void command_handler(std::string cmd){
-    std::cout << "cmd: " + cmd << std::endl;
-    if (cmd.compare("start") == 0){
-        media_recorder = new MediaRecorder(video_path);
-        media_recorder->start_record(AV_CODEC_ID_H264, 1920, 1080, "test.avi");
-        stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, 0, media_recorder);
-    } else if (cmd.compare("stop") == 0){
-        if(media_recorder != NULL){
-            media_recorder->stop_record();
-            communicator->broadcast("record:", "over");
-            stream_receiver->removeConsumer(media_recorder);
-            delete media_recorder;
-        }
-    }
 }
 
 static std::string getValueFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
@@ -104,12 +82,39 @@ static std::string getValueFromJson(json_object *json, std::string level1, std::
     return std::string(result, strlen(result));
 }
 
+static float getNumberFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
+    json_object *tmp1;
+    json_object *tmp2;
+    if(!json_object_object_get_ex(json, level1.data(), &tmp1)){
+        std::cout << "cannot find cmd" << std::endl;
+        return 0;
+    }
+
+    if(level2 == ""){
+        return json_object_get_double(tmp1);
+    }
+
+    if(!json_object_object_get_ex(tmp1, level2.data(), &tmp2)){
+        return 0;
+    }
+
+    if(level3 == ""){
+        return json_object_get_double(tmp2);
+    }
+
+    if(!json_object_object_get_ex(tmp2, level3.data(), &tmp1)){
+        return 0;
+    }
+
+    return json_object_get_double(tmp1);
+}
+
 static void savedCallback(std::string path, void* data){
     std::cout << "jpeg saved : " << path << std::endl;
     if(data != NULL){
         Communicator *comm = static_cast<Communicator *>(data);
         comm->broadcast ("", "{\"cmd\":\"TakePhotoResult\",\"data\":{\"path\":\"/mnt/temp\",\"result\":\"success\"}}");
-        comm->broadcast(PUBLISH_TOPIC, path);
+        comm->broadcast("jpeg: ", path);
     }
 };
 
@@ -145,7 +150,7 @@ int main(int argc, char** argv){
     }
 
     stream_receiver = new StreamReceiver();
-    communicator = new Communicator(PUBLISH_URL, SUB_URL, REP_URL);
+    communicator = new Communicator();
 
     SeiEncoder::init();
 
@@ -199,7 +204,7 @@ int main(int argc, char** argv){
 
     stream_receiver->start();
 
-    signal(SIGINT, signal_handler);    
+    signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
     signal(SIGQUIT, signal_handler);
     signal(SIGABRT, signal_handler);
@@ -209,16 +214,38 @@ int main(int argc, char** argv){
     std::string received_msg;
     while (!app_abort)
     {
-        if(communicator->receiveSub(SUB_TOPIC, received_msg)){
+        if(communicator->receiveSub(received_msg)){
             json_tokener *tok = json_tokener_new();
             json_object *json = json_tokener_parse_ex(tok, received_msg.data(), received_msg.size());
-            if(getValueFromJson(json, "Cmd", "", "") == "GPS"){
+            std::string cmd = getValueFromJson(json, "cmd", "", "");
+            if (cmd == ""){
+                std::cout << json_object_to_json_string(json) << std::endl;
+            }
+
+            if(cmd == "GPS"){
                 SeiEncoder::setLocation(std::stof(getValueFromJson(json, "data", "location", "latitude")),
                                         std::stof(getValueFromJson(json, "data", "location", "longitude")),
                                         std::stof(getValueFromJson(json, "data", "location", "altitude")));
                 SeiEncoder::setAngles(std::stof(getValueFromJson(json, "data", "angles", "roll")),
                                       std::stof(getValueFromJson(json, "data", "angles", "pitch")),
                                       std::stof(getValueFromJson(json, "data", "angles", "yaw"))); 
+            }else if(cmd == "DeviceStatus"){
+                DeviceStatus::cmos_temperature = std::stof(getValueFromJson(json, "data", "cmos_temp", ""));
+                DeviceStatus::input_voltage = std::stof(getValueFromJson(json, "data", "total_voltage", ""));
+            }else if(cmd == "workStatus"){
+                DeviceStatus::shutter_mode = getNumberFromJson(json, "data", "shutter_mode", "");
+                std::cout << "shutter_mode = " << DeviceStatus::shutter_mode << std::endl;
+                DeviceStatus::noise_reduction_strength = std::stoi(getValueFromJson(json, "data", "noise_reduction_strength", ""));
+                uint32_t jpeg_quality = std::stoi(getValueFromJson(json, "data", "photo_resolve", ""));
+                if(jpeg_quality == 100){
+                    DeviceStatus::jpeg_quality_level = 2;
+                }else if(jpeg_quality > 90 && jpeg_quality < 100){
+                    DeviceStatus::jpeg_quality_level = 1;
+                }else{
+                    DeviceStatus::jpeg_quality_level = 0;
+                }
+                
+                DeviceStatus::shutter_count = std::stoi(getValueFromJson(json, "data", "shutter_count", "count1"));
             }
         }
 

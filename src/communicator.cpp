@@ -1,12 +1,19 @@
 #include "communicator.h"
 #include <iostream>
 
-Communicator::Communicator(std::string pub_url, std::string sub_url, std::string req_url) : zmqContext(), publisher(zmqContext, zmq::socket_type::pub), 
-                                subscriber(zmqContext, zmq::socket_type::sub), cmd_server(zmqContext, zmq::socket_type::rep) {
+
+
+
+Communicator::Communicator(std::string pub_url, std::string gps_url, std::string work_status_url, std::string req_url) : zmqContext(), publisher(zmqContext, zmq::socket_type::pub), 
+                                gpsDataSubscriber(zmqContext, zmq::socket_type::sub), cmd_server(zmqContext, zmq::socket_type::rep), 
+                                workStatusSubscriber(zmqContext, zmq::socket_type::sub) {
     publisher.bind(pub_url);
     cmd_server.bind(req_url);
-    subscriber.connect(sub_url);
+    gpsDataSubscriber.connect(gps_url);
+    workStatusSubscriber.connect(work_status_url);
 }
+
+
 
 Communicator::~Communicator() {
     
@@ -20,11 +27,16 @@ void Communicator::broadcast(std::string topic, std::string content) {
     publisher.send(msg);
 }
 
-bool Communicator::receiveSub(std::string topic, std::string &content) {
-    zmq::message_t msg(128);
+bool Communicator::receiveSub(std::string &content) {
+    zmq::message_t msg(1024);
     memset(msg.data(), 0, 128);
-    subscriber.setsockopt(ZMQ_SUBSCRIBE, topic.c_str(), topic.length());
-    if (subscriber.recv(&msg, ZMQ_DONTWAIT)){
+    gpsDataSubscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+    if (gpsDataSubscriber.recv(&msg, ZMQ_DONTWAIT)){
+        content = std::string(static_cast<const char *> (msg.data()), msg.size());
+        return true;
+    }
+    workStatusSubscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+    if (workStatusSubscriber.recv(&msg, ZMQ_DONTWAIT)){
         content = std::string(static_cast<const char *> (msg.data()), msg.size());
         return true;
     }

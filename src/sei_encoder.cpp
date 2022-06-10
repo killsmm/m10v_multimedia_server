@@ -57,7 +57,6 @@ uint8_t *SeiEncoder::getEncodedSei(int *length) {
     memcpy(SeiEncoder::addShellEncodedData, SeiEncoder::encodedData, 23);
     memcpy(SeiEncoder::addShellEncodedData + 23, a.data(), a.size());
     *length = a.size() + 23;
-    std::cout << "sei length = " << *length << std::endl;
     return SeiEncoder::encodedData;
 }
 

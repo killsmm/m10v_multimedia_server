@@ -12,7 +12,6 @@ public:
     static void deinit();
     static void setLocation(float latitude, float longitude, float altitude);
     static void setAngles(float pan, float pitch, float roll);
-private:
     static float *longitude;
     static float *latitude;
     static float *altitude;
