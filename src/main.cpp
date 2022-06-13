@@ -264,12 +264,12 @@ int main(int argc, char** argv){
             std::string cmd = getValueFromJson(json, "cmd", "", "");
             std::cout << "---cmd from request:" + cmd << std::endl;
             if(cmd == "VideoStorage"){
-                media_recorder->setPath(getValueFromJson(json, "cmd", "data", "path"));
-                media_recorder->setPrefix(getValueFromJson(json, "cmd", "data", "prefix"));
+                media_recorder->setPath(getValueFromJson(json, "data", "path", ""));
+                media_recorder->setPrefix(getValueFromJson(json, "data", "prefix", ""));
             }else if(cmd == "PhotoStorage"){
                 if(jpeg_capture != NULL){
-                    jpeg_capture->setPath(getValueFromJson(json, "cmd", "data", "path"));
-                    jpeg_capture->setPrefix(getValueFromJson(json, "cmd", "data", "prefix"));
+                    jpeg_capture->setPath(getValueFromJson(json, "data", "path", ""));
+                    jpeg_capture->setPrefix(getValueFromJson(json, "data", "prefix", ""));
                 }
             }else if(cmd == "VideoStart"){
                 int width = 1920;
