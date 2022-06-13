@@ -235,17 +235,26 @@ int main(int argc, char** argv){
             }else if(cmd == "workStatus"){
                 DeviceStatus::shutter_mode = getNumberFromJson(json, "data", "shutter_mode", "");
                 std::cout << "shutter_mode = " << DeviceStatus::shutter_mode << std::endl;
-                DeviceStatus::noise_reduction_strength = std::stoi(getValueFromJson(json, "data", "noise_reduction_strength", ""));
-                uint32_t jpeg_quality = std::stoi(getValueFromJson(json, "data", "photo_resolve", ""));
-                if(jpeg_quality == 100){
-                    DeviceStatus::jpeg_quality_level = 2;
-                }else if(jpeg_quality > 90 && jpeg_quality < 100){
-                    DeviceStatus::jpeg_quality_level = 1;
-                }else{
-                    DeviceStatus::jpeg_quality_level = 0;
+                std::string nr_str = getValueFromJson(json, "data", "noise_reduction_strength", "");
+                if(nr_str != ""){
+                    DeviceStatus::noise_reduction_strength = std::stoi(nr_str);
                 }
-                
-                DeviceStatus::shutter_count = std::stoi(getValueFromJson(json, "data", "shutter_count", "count1"));
+                std::string jq_str = getValueFromJson(json, "data", "photo_resolve", "");
+                if(jq_str != ""){
+                    uint32_t jpeg_quality = std::stoi(jq_str);
+                    if(jpeg_quality == 100){
+                        DeviceStatus::jpeg_quality_level = 2;
+                    }else if(jpeg_quality > 90 && jpeg_quality < 100){
+                        DeviceStatus::jpeg_quality_level = 1;
+                    }else{
+                        DeviceStatus::jpeg_quality_level = 0;
+                    }
+                }
+
+                std::string sc_str = getValueFromJson(json, "data", "shutter_count", "count1");
+                if(sc_str != ""){
+                    DeviceStatus::shutter_count = std::stoi(sc_str);
+                }
             }
         }
 
@@ -255,12 +264,12 @@ int main(int argc, char** argv){
             std::string cmd = getValueFromJson(json, "cmd", "", "");
             std::cout << "---cmd from request:" + cmd << std::endl;
             if(cmd == "VideoStorage"){
-                media_recorder->setPath(getValueFromJson(json, "Cmd", "data", "path"));
-                media_recorder->setPrefix(getValueFromJson(json, "Cmd", "data", "prefix"));
+                media_recorder->setPath(getValueFromJson(json, "cmd", "data", "path"));
+                media_recorder->setPrefix(getValueFromJson(json, "cmd", "data", "prefix"));
             }else if(cmd == "PhotoStorage"){
                 if(jpeg_capture != NULL){
-                    jpeg_capture->setPath(getValueFromJson(json, "Cmd", "data", "path"));
-                    jpeg_capture->setPrefix(getValueFromJson(json, "Cmd", "data", "prefix"));
+                    jpeg_capture->setPath(getValueFromJson(json, "cmd", "data", "path"));
+                    jpeg_capture->setPrefix(getValueFromJson(json, "cmd", "data", "prefix"));
                 }
             }else if(cmd == "VideoStart"){
                 int width = 1920;
