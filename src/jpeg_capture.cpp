@@ -14,6 +14,8 @@
 #include "sei_encoder.h"
 #include <sys/time.h>
 #include <math.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 extern "C"{
     #include "jpeg-data.h"
@@ -95,6 +97,7 @@ static void new_exif_entry(ExifContent *content, ExifTag tag, ExifFormat fmt, ui
     entry->size = exif_format_get_size(fmt) * component_number;
     entry->data = data;
     exif_content_add_entry(content, entry);
+    exif_entry_ref(entry);
 }
 
 static void dump_exif_info(T_BF_DCF_IF_EXIF_INFO &info){
@@ -126,6 +129,30 @@ static GPS_DEGREE float_to_degree(float decimal){
     return ret;
 }
 
+static int save_picture_with_exif(const char* full_path, void *address, uint64_t ori_size, ExifData *exif){
+    int fd = open(full_path, O_CREAT | O_RDWR);
+    int ret = 0;
+    uint8_t *exif_data = new uint8_t[2048];
+    uint32_t exif_length = 0;
+    exif_data_save_data(exif, &exif_data, &exif_length);
+    
+    printf("exif size = %d address = 0x%08x\n", exif_length, exif_data);
+    uint32_t jpeg_app_size = exif_length + 2;
+    uint8_t jpeg_app_head[4] = {0xff, 0xe1};
+    jpeg_app_head[2] = (jpeg_app_size & 0xff00) >> 8;
+    jpeg_app_head[3] = jpeg_app_size & 0xff;
+    if(fd < 0){
+        printf("open jpeg original file failed\n");
+    }else{
+        ret |= write(fd, address, 2);
+        ret |= write(fd, jpeg_app_head, 4);
+        ret |= write(fd, exif_data, exif_length);
+        ret |= write(fd, address + 2, ori_size - 2);
+    }
+    delete exif_data;
+    return ret;
+}
+
 bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_IF_EXIF_INFO info, const char *path)
 {
     // printf("exif size = %d\n", sizeof(info));
@@ -134,7 +161,7 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
 
     dump_exif_info(info);
 
-    JPEGData *jpegData = jpeg_data_new_from_data((uint8_t *)address, size);
+
     
     // ExifData *exif = get_exif_from_rtos_info(info);
 
@@ -184,12 +211,11 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
 
 
     exif->ifd[EXIF_IFD_0] = ifd_0;  
-
+    printf("point one\n");
 
     ////////////* IFD 0 *////////////////
 
     ExifContent *content = exif_content_new();
-
     /* create date */
     char date_str[100] = {0};
     struct timeval tv;
@@ -355,12 +381,27 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_VERSION_ID, EXIF_FORMAT_BYTE, gps_version_id, 4);
 
     exif->ifd[EXIF_IFD_GPS] = gps_content;
+#if 0
+    int fd = open((std::string(path) + std::string("ori")).c_str(), O_CREAT | O_RDWR);
+    if(fd < 0){
+        printf("open jpeg original file failed\n");
+    }else{
+        write(fd, (void *)address, size);
+        close(fd);
+    }
+    
 
+    JPEGData *jpegData = jpeg_data_new_from_data((uint8_t *)address, size);
     if(exif != nullptr){
         jpeg_data_set_exif_data(jpegData, exif);
     }
+    
     int ret = jpeg_data_save_file(jpegData, path);
     exif_data_free(exif);
     jpeg_data_free(jpegData);
+#else
+    int ret = save_picture_with_exif(path, address, size, exif);
+    exif_data_unref(exif);
+#endif
     return ret == 0;
 }
