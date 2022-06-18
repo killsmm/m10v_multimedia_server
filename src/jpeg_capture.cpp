@@ -156,15 +156,15 @@ static GPS_DEGREE float_to_degree(float decimal){
 
 static int save_picture_with_exif(const char* full_path, void *address, uint64_t ori_size, ExifData *exif){
     int ret = 0;
-    uint8_t *exif_data = new uint8_t[2048];
     uint32_t exif_length = 0;
+    uint8_t *exif_data = NULL;
     exif_data_save_data(exif, &exif_data, &exif_length);
     
     uint32_t jpeg_app_size = exif_length + 2;
     uint8_t jpeg_app_head[4] = {0xff, 0xe1};
     jpeg_app_head[2] = (jpeg_app_size & 0xff00) >> 8;
     jpeg_app_head[3] = jpeg_app_size & 0xff;
-#if 0
+#if 1
     int fd = open(full_path, O_CREAT | O_RDWR);
     if(fd < 0){
         printf("open jpeg original file failed\n");
@@ -175,7 +175,7 @@ static int save_picture_with_exif(const char* full_path, void *address, uint64_t
         ret |= write(fd, address + 2, ori_size - 2);
         close(fd);
     }
-#elif 1
+#elif 0
     FILE *img = fopen(full_path, "w+");
     if(img != NULL){
         fwrite(address, 2, 1, img);
