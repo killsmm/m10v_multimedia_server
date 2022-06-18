@@ -274,7 +274,7 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
 
     exif->ifd[EXIF_IFD_0] = ifd_0;  
 
-    print_operation_time("IFD0 finish");
+    print_operation_time("IFD0_finish");
 
 
     ////////////* IFD EXIF *////////////////
@@ -405,6 +405,9 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     // new_exif_entry(content, EXIF_TAG_MAKER_NOTE, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(&m_note), sizeof(m_note));
 
     exif->ifd[EXIF_IFD_EXIF] = content;
+
+    print_operation_time("ifd_exif");
+
 
 /* GPS  */
     ExifContent *gps_content = exif_content_new();
