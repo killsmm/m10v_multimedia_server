@@ -9,6 +9,7 @@ static std::string GPS_URL = "ipc:///tmp/gps";
 
 static std::string STATUS_URL = "tcp://127.0.0.1:8100";
 
+
 static std::string REP_URL = "tcp://*:8102";
 
 typedef bool (*RecvCallback)(std::string);
