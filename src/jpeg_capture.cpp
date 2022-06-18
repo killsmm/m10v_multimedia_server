@@ -16,7 +16,8 @@
 #include <math.h>
 #include <fcntl.h>
 #include <unistd.h>
-
+#include <sys/mman.h>
+// #include <arm_neon.h>
 extern "C"{
     #include "jpeg-data.h"
 }
@@ -31,6 +32,30 @@ JpegCapture::JpegCapture(std::string path){
 
 JpegCapture::~JpegCapture() {
     
+}
+
+static void print_operation_time(const char* s){
+    static uint64_t last ;
+    struct timeval tm;
+    gettimeofday(&tm, nullptr);
+    uint64_t now = (tm.tv_sec * 1000) + (tm.tv_usec / 1000);
+    printf("[OPERATION_TIME]%s : %d\n", s,  now - last);
+    last = now;
+}
+
+
+void my_copy(volatile unsigned char *dst, volatile unsigned char *src, int sz)
+{
+    // if (sz & 63) {
+    //     sz = (sz & -64) + 64;
+    // }
+    // asm volatile (
+    //     "NEONCopyPLD:                          \n"
+    //     "    VLDM %[src]!,{d0-d7}                 \n"
+    //     "    VSTM %[dst]!,{d0-d7}                 \n"
+    //     "    SUBS %[sz],%[sz],#0x40                 \n"
+    //     "    BGT NEONCopyPLD                  \n"
+    //     : [dst]"+r"(dst), [src]"+r"(src), [sz]"+r"(sz) : : "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "cc", "memory");
 }
 
 static std::string get_jpeg_full_path_now(std::string parent_path, std::string prefix, std::string suffix){
@@ -130,17 +155,17 @@ static GPS_DEGREE float_to_degree(float decimal){
 }
 
 static int save_picture_with_exif(const char* full_path, void *address, uint64_t ori_size, ExifData *exif){
-    int fd = open(full_path, O_CREAT | O_RDWR);
     int ret = 0;
     uint8_t *exif_data = new uint8_t[2048];
     uint32_t exif_length = 0;
     exif_data_save_data(exif, &exif_data, &exif_length);
     
-    printf("exif size = %d address = 0x%08x\n", exif_length, exif_data);
     uint32_t jpeg_app_size = exif_length + 2;
     uint8_t jpeg_app_head[4] = {0xff, 0xe1};
     jpeg_app_head[2] = (jpeg_app_size & 0xff00) >> 8;
     jpeg_app_head[3] = jpeg_app_size & 0xff;
+#if 0
+    int fd = open(full_path, O_CREAT | O_RDWR);
     if(fd < 0){
         printf("open jpeg original file failed\n");
     }else{
@@ -148,7 +173,42 @@ static int save_picture_with_exif(const char* full_path, void *address, uint64_t
         ret |= write(fd, jpeg_app_head, 4);
         ret |= write(fd, exif_data, exif_length);
         ret |= write(fd, address + 2, ori_size - 2);
+        close(fd);
     }
+#elif 1
+    FILE *img = fopen(full_path, "w+");
+    if(img != NULL){
+        fwrite(address, 2, 1, img);
+        fwrite(jpeg_app_head, 4, 1, img);
+        fwrite(exif_data, exif_length, 1, img);
+        fwrite(address + 2, ori_size - 2, 1, img);
+        fclose(img);
+    }
+#else
+    int fd = open(full_path, O_CREAT | O_RDWR);
+    if(fd < 0){
+        printf("open jpeg original file failed\n");
+    }else{
+        void *map_addr = mmap(NULL, 20 * 1024 * 1024, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+        if (map_addr == MAP_FAILED){
+            printf("mmap failed\n");
+        }else{
+            volatile uint8_t *p = reinterpret_cast<uint8_t *> (map_addr);
+
+            ftruncate(fd, ori_size + 4 + exif_length);
+            // my_copy(p, reinterpret_cast<uint8_t *>(address), 2);
+            // my_copy(p + 2, jpeg_app_head, 4);
+            // my_copy(p + 6, exif_data, exif_length);
+            // my_copy(p + 6 + exif_length, reinterpret_cast<uint8_t *>(address) + 2, ori_size - 2);
+            memcpy(map_addr, reinterpret_cast<uint8_t *>(address), 2);
+            memcpy(map_addr + 2, jpeg_app_head, 4);
+            memcpy(map_addr + 6, exif_data, exif_length);
+            memcpy(map_addr + 6 + exif_length, reinterpret_cast<uint8_t *>(address) + 2, ori_size - 2);
+            munmap(map_addr, 20 * 1024 * 1024);
+        }
+        close(fd);
+    }
+#endif
     delete exif_data;
     return ret;
 }
@@ -159,7 +219,9 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     // std::cout << "iso = " << info.iso_value << std::endl;
     // std::cout << "exp_time = " << info.exposure_time.nume << "/" << info.exposure_time.denomi << std::endl;
 
-    dump_exif_info(info);
+    print_operation_time("first");
+
+    // dump_exif_info(info);
 
 
     
@@ -211,9 +273,11 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
 
 
     exif->ifd[EXIF_IFD_0] = ifd_0;  
-    printf("point one\n");
 
-    ////////////* IFD 0 *////////////////
+    print_operation_time("IFD0 finish");
+
+
+    ////////////* IFD EXIF *////////////////
 
     ExifContent *content = exif_content_new();
     /* create date */
@@ -222,13 +286,13 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     gettimeofday(&tv, NULL);
     size_t date_str_length = strftime(date_str,100,"%Y:%m:%d %T:",localtime(&tv.tv_sec));
     strcpy(&date_str[date_str_length], std::to_string(static_cast<int>(tv.tv_usec / 1000)).c_str());
-    printf("date_str_length = %d\n", date_str_length);
+    // printf("date_str_length = %d\n", date_str_length);
     uint32_t total_length = date_str_length + strlen(&date_str[date_str_length]) + 1;
     new_exif_entry(content, EXIF_TAG_DATE_TIME_ORIGINAL, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(date_str), total_length);
     new_exif_entry(content, EXIF_TAG_DATE_TIME, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(date_str), total_length);
     new_exif_entry(content, EXIF_TAG_DATE_TIME_DIGITIZED, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(date_str), total_length);
 
-
+    
     /* serial number */
     char serial_number[20] = {0};
     FILE *fp = popen("cat /sys/class/net/eth0/address", "r");
@@ -246,7 +310,7 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
                                                 iso_data, 1);
 
     /* exposure time */
-    printf("exposure time = %d/%d\n", info.exposure_time.nume, info.exposure_time.denomi);
+    // printf("exposure time = %d/%d\n", info.exposure_time.nume, info.exposure_time.denomi);
     uint32_t shutter_speed_data_size = exif_format_get_size(EXIF_FORMAT_RATIONAL);
     uint8_t shutter_speed_data[shutter_speed_data_size];
     exif_set_rational(shutter_speed_data, byteOrder, ExifRational{
@@ -282,7 +346,7 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
 
     
     /* metring mode */
-    printf("metering mode = %d\n", info.metering);
+    // printf("metering mode = %d\n", info.metering);
     uint8_t metering_mode[exif_format_get_size(EXIF_FORMAT_SHORT)];
     exif_set_short(metering_mode, byteOrder, ExifShort(info.metering));
     new_exif_entry(content, EXIF_TAG_METERING_MODE, EXIF_FORMAT_SHORT, metering_mode, 1);
@@ -304,7 +368,7 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     /* brightness */
     uint8_t brightness[exif_format_get_size(EXIF_FORMAT_SRATIONAL)] = {0};
     float ev_brightness = get_ev_brightness(5.6, (static_cast<float>(info.exposure_time.nume)) / info.exposure_time.denomi, info.iso_value);
-    printf("ev_brightness = %f\n", ev_brightness);
+    // printf("ev_brightness = %f\n", ev_brightness);
     exif_set_srational(brightness, byteOrder, ExifSRational{.numerator = static_cast<ExifSLong>(ev_brightness * 100),
                                                             .denominator = 100});
     new_exif_entry(content, EXIF_TAG_BRIGHTNESS_VALUE, EXIF_FORMAT_SRATIONAL, reinterpret_cast<uint8_t *>(brightness), 1);
@@ -381,6 +445,9 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_VERSION_ID, EXIF_FORMAT_BYTE, gps_version_id, 4);
 
     exif->ifd[EXIF_IFD_GPS] = gps_content;
+
+    print_operation_time("get_exif");
+
 #if 0
     int fd = open((std::string(path) + std::string("ori")).c_str(), O_CREAT | O_RDWR);
     if(fd < 0){
@@ -400,7 +467,9 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     exif_data_free(exif);
     jpeg_data_free(jpegData);
 #else
+    print_operation_time("save_file_start");
     int ret = save_picture_with_exif(path, address, size, exif);
+    print_operation_time("save_file_over");
     exif_data_unref(exif);
 #endif
     return ret == 0;
