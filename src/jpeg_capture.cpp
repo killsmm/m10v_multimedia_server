@@ -294,14 +294,19 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
 
     
     /* serial number */
-    char serial_number[20] = {0};
-    FILE *fp = popen("cat /sys/class/net/eth0/address", "r");
-    if(fp != NULL){
-        fgets(serial_number, sizeof(serial_number), fp);
-    }
 
-    new_exif_entry(content, (ExifTag)0xa431, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t*>(serial_number), strlen(serial_number) + 1);
-    new_exif_entry(content, (ExifTag)0xc62f, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t*>(serial_number), strlen(serial_number) + 1);
+
+    new_exif_entry(content, (ExifTag)0xa431, EXIF_FORMAT_ASCII, 
+                                (uint8_t*)(DeviceStatus::serial_number.c_str()), 
+                                strlen(DeviceStatus::serial_number.c_str()) + 1);
+
+    new_exif_entry(content, (ExifTag)0xc62f, EXIF_FORMAT_ASCII, 
+                                (uint8_t*)(DeviceStatus::serial_number.c_str()), 
+                                strlen(DeviceStatus::serial_number.c_str()) + 1);
+
+    std::cout << DeviceStatus::serial_number << std::endl;
+    print_operation_time("serial_number");
+
     /* iso */
     uint32_t iso_data_size = exif_format_get_size(EXIF_FORMAT_SHORT);
     uint8_t iso_data[iso_data_size];

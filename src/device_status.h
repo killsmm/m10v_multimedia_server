@@ -13,6 +13,7 @@ class DeviceStatus{
         static int32_t shutter_mode; // 0 for electrical , 1 for mechnical
         static std::string software_version;
         static std::string internal_code;
+        static std::string serial_number;
 };
 
 #endif // !DEVICE_STATUS_H
