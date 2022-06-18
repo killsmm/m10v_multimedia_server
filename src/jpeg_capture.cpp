@@ -363,7 +363,7 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
 
     uint8_t latitude_data[exif_format_get_size(EXIF_FORMAT_RATIONAL) * 3] = {0};
     GPS_DEGREE lati_degree = float_to_degree(*SeiEncoder::latitude ? *SeiEncoder::latitude : 56.123321);    
-    exif_set_rational(latitude_data, byteOrder, ExifRational{.numerator = longi_degree.degrees, .denominator = 1});
+    exif_set_rational(latitude_data, byteOrder, ExifRational{.numerator = lati_degree.degrees, .denominator = 1});
     exif_set_rational(latitude_data + exif_format_get_size(EXIF_FORMAT_RATIONAL) * 1, byteOrder, ExifRational{.numerator = lati_degree.minutes, .denominator = 1});
     exif_set_rational(latitude_data + exif_format_get_size(EXIF_FORMAT_RATIONAL) * 2, byteOrder, ExifRational{.numerator = lati_degree.seconds, .denominator = 1});
     new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_LATITUDE, EXIF_FORMAT_RATIONAL, latitude_data, 3);
