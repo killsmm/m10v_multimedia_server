@@ -154,6 +154,14 @@ int main(int argc, char** argv){
 
     SeiEncoder::init();
 
+    char serial_number[20] = {0};
+    FILE *fp = popen("cat /sys/class/net/eth0/address", "r");
+    if(fp != NULL){
+        fgets(serial_number, sizeof(serial_number), fp);
+    }
+    fclose(fp);
+    DeviceStatus::serial_number.assign(serial_number);
+
     if (flag & FLAG_JPEG) {
         std::cout << "path = " << jpeg_path << std::endl;
         jpeg_capture = new JpegCapture(std::string(jpeg_path));

@@ -6,6 +6,9 @@ SET(LICENSE "TBD")
 SET(CMAKE_SYSROOT /opt/poky/2.2/sysroots/cortexa7-poky-linux-gnueabi)
 include(CTest)
 
+add_compile_options(-mfpu=neon-vfpv4)
+# add_compile_options(-mfloat-abi=hard)
+
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
 ######## Build and include settings ########

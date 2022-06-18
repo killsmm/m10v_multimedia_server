@@ -9,3 +9,4 @@ int32_t  DeviceStatus::jpeg_quality_level = 2; // 0 - 3 low to high 0 for 80-89,
 int32_t  DeviceStatus::shutter_mode = 0; // 0 for electrical , 1 for mechnical
 std::string DeviceStatus::software_version = "0.1.2";
 std::string DeviceStatus::internal_code = "A";
+std::string DeviceStatus::serial_number = "feituo";
