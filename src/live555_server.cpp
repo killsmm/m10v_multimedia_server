@@ -4,7 +4,6 @@
 Live555Server::Live555Server(std::string stream_name) {
     this->scheduler = BasicTaskScheduler::createNew();
 	this->env = BasicUsageEnvironment::createNew(*this->scheduler);	
-
     this->rtspServer = RTSPServer::createNew(*this->env);    
 
     OutPacketBuffer::maxSize = 8 * 1024 * 1024;
@@ -12,7 +11,6 @@ Live555Server::Live555Server(std::string stream_name) {
     this->serverMediaSession = ServerMediaSession::createNew(*this->env, stream_name.c_str());
     this->subSession = IPCU555Subsession::createNew(*this->env);
     this->serverMediaSession->addSubsession(this->subSession);
-
     // this->serverMediaSession = ServerMediaSession::createNew(*this->env, "sample");
     //H264VideoFileServerMediaSubsession *sub = H264VideoFileServerMediaSubsession::createNew(*this->env, "video_480x360_fps30.264", true);
     // this->serverMediaSession->addSubsession(sub);

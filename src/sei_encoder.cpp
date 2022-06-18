@@ -57,7 +57,7 @@ uint8_t *SeiEncoder::getEncodedSei(int *length) {
     memcpy(SeiEncoder::addShellEncodedData, SeiEncoder::encodedData, 23);
     memcpy(SeiEncoder::addShellEncodedData + 23, a.data(), a.size());
     *length = a.size() + 23;
-    return SeiEncoder::encodedData;
+    return SeiEncoder::addShellEncodedData;
 }
 
 void SeiEncoder::setLocation(float latitude, float longitude, float altitude) {

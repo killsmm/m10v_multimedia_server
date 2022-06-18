@@ -209,11 +209,10 @@ int main(int argc, char** argv){
     signal(SIGQUIT, signal_handler);
     signal(SIGABRT, signal_handler);
 
-
-
     std::string received_msg;
     while (!app_abort)
     {
+        // SeiEncoder::setLocation(rand() % 90, rand() % 90, rand() % 3000); // for test only
         if(communicator->receiveSub(received_msg)){
             json_tokener *tok = json_tokener_new();
             json_object *json = json_tokener_parse_ex(tok, received_msg.data(), received_msg.size());

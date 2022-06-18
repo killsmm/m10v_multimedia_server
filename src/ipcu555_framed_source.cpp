@@ -4,7 +4,7 @@
 #include <queue>
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-
+EventTriggerId IPCU555FramedSource::eventTriggerId = 0;
 
 IPCU555FramedSource* IPCU555FramedSource::createNew(UsageEnvironment& env, void *data)
 {
@@ -26,25 +26,28 @@ int IPCU555FramedSource::writeFrameToBuf(uint8_t *addr, uint64_t size, uint8_t *
     memmove(this->frame_buffer, sei, sei_size);
     memmove(this->frame_buffer + sei_size, addr, size);
     this->frame_size = size + sei_size;
-    pthread_mutex_unlock(&lock);
     signalNewFrameData();
+    pthread_mutex_unlock(&lock);
+
     return 0;
 }
 
 IPCU555FramedSource::IPCU555FramedSource(UsageEnvironment& env, void *data) 
         : FramedSource(env)
 {
+
     this->frame_buffer = new uint8_t[BUFFER_SIZE];
     this->frame_size = 0;
-    this->eventTriggerId = env.taskScheduler().createEventTrigger(deliverFrame0);
+    IPCU555FramedSource::eventTriggerId = env.taskScheduler().createEventTrigger(deliverFrame0);
+    this->taskScheduler = &env.taskScheduler();
 }
 
 void IPCU555FramedSource::signalNewFrameData()
 {
-    TaskScheduler* ourScheduler = &this->envir().taskScheduler();
+    // TaskScheduler* ourScheduler = &this->envir().taskScheduler();
 
-    if (ourScheduler != NULL) { // sanity check
-        ourScheduler->triggerEvent(this->eventTriggerId, this);
+    if (this->taskScheduler != NULL) { // sanity check
+        taskScheduler->triggerEvent(IPCU555FramedSource::eventTriggerId, this);
     }
 }
 
@@ -85,7 +88,7 @@ void IPCU555FramedSource::deliverFrame()
     // Note the code below.
 
     if (!isCurrentlyAwaitingData()){
-        std::cout << "!isCurrentlyAwaitingData" << std::endl;
+        // std::cout << "!isCurrentlyAwaitingData" << std::endl;
         return; // we're not ready for the data yet
     }
     if (pthread_mutex_trylock(&lock) == 0){
