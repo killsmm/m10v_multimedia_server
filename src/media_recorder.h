@@ -23,7 +23,7 @@ class MediaRecorder : public FrameConsumer {
     public:
         MediaRecorder(std::string path = ".");
         ~MediaRecorder();
-        int start_record(AVCodecID video_codec_id, int width, int height, std::string file_name = "default.mp4"); 
+        int start_record(AVCodecID video_codec_id, int width, int height, int framerate, std::string file_name = "default.mp4"); 
         int stop_record();
         int write_one_frame(uint8_t *addr, unsigned int size);
         void setPath(std::string path);
@@ -33,7 +33,6 @@ class MediaRecorder : public FrameConsumer {
         AVFormatContext *f_ctx;
         AVPacket packet;
         void onFrameReceivedCallback (void* address, std::uint64_t size, void *extra_data);
-        AVStream * createGPSStream(AVFormatContext *ctx);
     private:
         pthread_t record_thread;
         std::string record_path;

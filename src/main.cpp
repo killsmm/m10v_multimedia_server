@@ -313,14 +313,22 @@ int main(int argc, char** argv){
                     codec_id = AV_CODEC_ID_H264;
                 }
 
+                int frame_rate = 25;
+                std::string fps = getValueFromJson(json, "data", "fps", "");
+                if (fps != ""){
+                    frame_rate = std::stoi(fps);
+                }
+                
+
                 std::cout << "width, height = " << width << "," << height << std::endl;
                 std::cout << "codec_id = " << codec_id << " stream_id == " << stream_id << std::endl;
+                std::cout << "frame_rate = " << frame_rate << std::endl;
 
                 if(media_recorder->getRecordStatus() == RECORD_STATUS_RECORDING){
                     std::cout << "error: is already recording" << std::endl;
                     return false;
                 }
-                media_recorder->start_record(codec_id, width, height, ".avi");
+                media_recorder->start_record(codec_id, width, height, frame_rate, ".avi");
                 stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, stream_id, media_recorder);
             }else if(cmd == "VideoStop"){
                 if(media_recorder->getRecordStatus() != RECORD_STATUS_RECORDING){
