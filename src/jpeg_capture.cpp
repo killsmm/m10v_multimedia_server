@@ -420,9 +420,9 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
 
     printf("%f, %f, %f\n", *SeiEncoder::altitude, *SeiEncoder::latitude, *SeiEncoder::longitude);
 
-    uint8_t altitude_data[1] = {0};
-    tmp.denominator = 1000000;
-    tmp.numerator = *SeiEncoder::altitude * 1000000 ? *SeiEncoder::altitude * 1000000 : 121333333 ;
+    uint8_t altitude_data[exif_format_get_size(EXIF_FORMAT_RATIONAL)] = {0};
+    tmp.denominator = 1000;
+    tmp.numerator = *SeiEncoder::altitude * 1000 ? *SeiEncoder::altitude * 1000 : 121333 ;
     exif_set_rational(altitude_data, byteOrder, tmp);
     new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_ALTITUDE, EXIF_FORMAT_RATIONAL, altitude_data, 1);
 

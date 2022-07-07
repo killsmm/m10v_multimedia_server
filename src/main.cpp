@@ -230,6 +230,15 @@ int main(int argc, char** argv){
             }
 
             if(cmd == "GPS"){
+#if 0
+                float latitude = std::stof(getValueFromJson(json, "data", "location", "latitude"));
+                float longitude = std::stof(getValueFromJson(json, "data", "location", "longitude"));
+                float altitude = std::stof(getValueFromJson(json, "data", "location", "altitude"));
+                float roll = std::stof(getValueFromJson(json, "data", "angles", "roll"));
+                float pitch = std::stof(getValueFromJson(json, "data", "angles", "pitch"));
+                float yaw = std::stof(getValueFromJson(json, "data", "angles", "yaw"));
+                printf("GPS: (%f,%f,%f), (%f,%f,%f)\n", latitude, longitude, altitude, roll, pitch, yaw);
+#endif
                 SeiEncoder::setLocation(std::stof(getValueFromJson(json, "data", "location", "latitude")),
                                         std::stof(getValueFromJson(json, "data", "location", "longitude")),
                                         std::stof(getValueFromJson(json, "data", "location", "altitude")));
