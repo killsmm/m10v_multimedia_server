@@ -9,7 +9,7 @@ volatile float *SeiEncoder::altitude = nullptr;
 volatile float *SeiEncoder::roll = nullptr;
 volatile float *SeiEncoder::pitch = nullptr;
 volatile float *SeiEncoder::yaw = nullptr;
-volatile uint8_t *SeiEncoder::encodedData = nullptr;
+uint8_t *SeiEncoder::encodedData = nullptr;
 uint8_t *SeiEncoder::addShellEncodedData = nullptr;
 
 void SeiEncoder::init() {

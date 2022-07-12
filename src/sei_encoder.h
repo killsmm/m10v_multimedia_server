@@ -18,7 +18,7 @@ public:
     static volatile float *roll;
     static volatile float *pitch;
     static volatile float *yaw; 
-    static volatile uint8_t *encodedData;
+    static uint8_t *encodedData;
     static uint8_t *addShellEncodedData;
 };
 
