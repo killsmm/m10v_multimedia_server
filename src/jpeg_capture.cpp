@@ -150,7 +150,7 @@ static GPS_DEGREE float_to_degree(float decimal){
     GPS_DEGREE ret = {0};
     ret.degrees = static_cast<uint32_t>(decimal);
     ret.minutes = static_cast<uint32_t>((decimal - ret.degrees) * 60);
-    ret.seconds = static_cast<uint32_t>((decimal - ret.minutes) * 60 - ret.minutes);
+    ret.seconds = static_cast<uint32_t>(((decimal - ret.degrees) * 60 - ret.minutes) * 60);
     return ret;
 }
 

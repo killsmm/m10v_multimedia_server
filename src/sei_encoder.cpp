@@ -3,13 +3,13 @@
 #include <vector>
 #include <iostream>
 
-float *SeiEncoder::longitude = nullptr;
-float *SeiEncoder::latitude = nullptr;
-float *SeiEncoder::altitude = nullptr;
-float *SeiEncoder::roll = nullptr;
-float *SeiEncoder::pitch = nullptr;
-float *SeiEncoder::yaw = nullptr;
-uint8_t *SeiEncoder::encodedData = nullptr;
+volatile float *SeiEncoder::longitude = nullptr;
+volatile float *SeiEncoder::latitude = nullptr;
+volatile float *SeiEncoder::altitude = nullptr;
+volatile float *SeiEncoder::roll = nullptr;
+volatile float *SeiEncoder::pitch = nullptr;
+volatile float *SeiEncoder::yaw = nullptr;
+volatile uint8_t *SeiEncoder::encodedData = nullptr;
 uint8_t *SeiEncoder::addShellEncodedData = nullptr;
 
 void SeiEncoder::init() {
@@ -19,12 +19,12 @@ void SeiEncoder::init() {
     if (SeiEncoder::addShellEncodedData == nullptr){
         SeiEncoder::addShellEncodedData = new uint8_t[128];
     }
-    SeiEncoder::longitude = reinterpret_cast<float*>(SeiEncoder::encodedData + 23);
-    SeiEncoder::latitude = reinterpret_cast<float*>(SeiEncoder::encodedData + 23 + 4);
-    SeiEncoder::altitude = reinterpret_cast<float*>(SeiEncoder::encodedData + 23 + 8);
-    SeiEncoder::pitch = reinterpret_cast<float*>(SeiEncoder::encodedData + 23 + 12);
-    SeiEncoder::yaw = reinterpret_cast<float*>(SeiEncoder::encodedData + 23 + 16);
-    SeiEncoder::roll = reinterpret_cast<float*>(SeiEncoder::encodedData + 23 + 20);
+    SeiEncoder::longitude = reinterpret_cast<volatile float*>(SeiEncoder::encodedData + 23);
+    SeiEncoder::latitude = reinterpret_cast<volatile float*>(SeiEncoder::encodedData + 23 + 4);
+    SeiEncoder::altitude = reinterpret_cast<volatile float*>(SeiEncoder::encodedData + 23 + 8);
+    SeiEncoder::pitch = reinterpret_cast<volatile float*>(SeiEncoder::encodedData + 23 + 12);
+    SeiEncoder::yaw = reinterpret_cast<volatile float*>(SeiEncoder::encodedData + 23 + 16);
+    SeiEncoder::roll = reinterpret_cast<volatile float*>(SeiEncoder::encodedData + 23 + 20);
     uint8_t sei_head[23] = {0x00, 0x00, 0x00, 0x01, 0x06, 0x05, 0x28, 
                             0x13, 0x9F, 0xB1, 0xA9, 0x44, 0x6A, 0x4D, 0xEC, 
                             0x8C, 0xBF, 0x65, 0xB1, 0xE1, 0x2D, 0x2C, 0xFD};
@@ -54,6 +54,7 @@ uint8_t *SeiEncoder::getEncodedSei(int *length) {
         }
         
     }
+    const uint8_t *tmp = SeiEncoder::encodedData;
     memcpy(SeiEncoder::addShellEncodedData, SeiEncoder::encodedData, 23);
     memcpy(SeiEncoder::addShellEncodedData + 23, a.data(), a.size());
     *length = a.size() + 23;

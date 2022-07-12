@@ -12,13 +12,13 @@ public:
     static void deinit();
     static void setLocation(float latitude, float longitude, float altitude);
     static void setAngles(float pan, float pitch, float roll);
-    static float *longitude;
-    static float *latitude;
-    static float *altitude;
-    static float *roll;
-    static float *pitch;
-    static float *yaw; 
-    static uint8_t *encodedData;
+    static volatile float *longitude;
+    static volatile float *latitude;
+    static volatile float *altitude;
+    static volatile float *roll;
+    static volatile float *pitch;
+    static volatile float *yaw; 
+    static volatile uint8_t *encodedData;
     static uint8_t *addShellEncodedData;
 };
 
