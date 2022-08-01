@@ -422,19 +422,19 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
 
     uint8_t altitude_data[exif_format_get_size(EXIF_FORMAT_RATIONAL)] = {0};
     tmp.denominator = 1000;
-    tmp.numerator = *SeiEncoder::altitude * 1000 ? *SeiEncoder::altitude * 1000 : 121333 ;
+    tmp.numerator = *SeiEncoder::altitude * 1000;
     exif_set_rational(altitude_data, byteOrder, tmp);
     new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_ALTITUDE, EXIF_FORMAT_RATIONAL, altitude_data, 1);
 
     uint8_t longitude_data[exif_format_get_size(EXIF_FORMAT_RATIONAL) * 3] = {0};
-    GPS_DEGREE longi_degree = float_to_degree(*SeiEncoder::longitude ? *SeiEncoder::longitude : 123.123321);
+    GPS_DEGREE longi_degree = float_to_degree(*SeiEncoder::longitude);
     exif_set_rational(longitude_data, byteOrder, ExifRational{.numerator = longi_degree.degrees, .denominator = 1});
     exif_set_rational(longitude_data + exif_format_get_size(EXIF_FORMAT_RATIONAL) * 1, byteOrder, ExifRational{.numerator = longi_degree.minutes, .denominator = 1});
     exif_set_rational(longitude_data + exif_format_get_size(EXIF_FORMAT_RATIONAL) * 2, byteOrder, ExifRational{.numerator = longi_degree.seconds, .denominator = 1});
     new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_LONGITUDE, EXIF_FORMAT_RATIONAL, longitude_data, 3);
 
     uint8_t latitude_data[exif_format_get_size(EXIF_FORMAT_RATIONAL) * 3] = {0};
-    GPS_DEGREE lati_degree = float_to_degree(*SeiEncoder::latitude ? *SeiEncoder::latitude : 56.123321);    
+    GPS_DEGREE lati_degree = float_to_degree(*SeiEncoder::latitude);    
     exif_set_rational(latitude_data, byteOrder, ExifRational{.numerator = lati_degree.degrees, .denominator = 1});
     exif_set_rational(latitude_data + exif_format_get_size(EXIF_FORMAT_RATIONAL) * 1, byteOrder, ExifRational{.numerator = lati_degree.minutes, .denominator = 1});
     exif_set_rational(latitude_data + exif_format_get_size(EXIF_FORMAT_RATIONAL) * 2, byteOrder, ExifRational{.numerator = lati_degree.seconds, .denominator = 1});

@@ -12,6 +12,7 @@ public:
     static void deinit();
     static void setLocation(float latitude, float longitude, float altitude);
     static void setAngles(float pan, float pitch, float roll);
+    static float getLatitude();
     static volatile float *longitude;
     static volatile float *latitude;
     static volatile float *altitude;

@@ -272,6 +272,8 @@ int main(int argc, char** argv){
                     DeviceStatus::shutter_count = std::stoi(sc_str);
                 }
             }
+            json_object_put(json);
+            json_tokener_free(tok);
         }
 
         communicator->receiveCmd([](std::string s) -> bool{
@@ -335,6 +337,8 @@ int main(int argc, char** argv){
 
                 if(media_recorder->getRecordStatus() == RECORD_STATUS_RECORDING){
                     std::cout << "error: is already recording" << std::endl;
+                    json_object_put(json);
+                    json_tokener_free(tok);
                     return false;
                 }
                 media_recorder->start_record(codec_id, width, height, frame_rate, ".avi");
@@ -342,18 +346,24 @@ int main(int argc, char** argv){
             }else if(cmd == "VideoStop"){
                 if(media_recorder->getRecordStatus() != RECORD_STATUS_RECORDING){
                     std::cout << "error: is not recording" << std::endl;
+                    json_object_put(json);
+                    json_tokener_free(tok);
                     return false;
                 }
                 media_recorder->stop_record();
                 communicator->broadcast("record:", "over");
                 stream_receiver->removeConsumer(media_recorder);
             }else{
+                json_object_put(json);
+                json_tokener_free(tok);
                 return false;
             }
+            json_object_put(json);
+            json_tokener_free(tok);
             return true;
         });
 
-        sleep(1);
+        //sleep(1);
     }
 
 

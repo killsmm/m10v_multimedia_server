@@ -62,13 +62,26 @@ uint8_t *SeiEncoder::getEncodedSei(int *length) {
 }
 
 void SeiEncoder::setLocation(float latitude, float longitude, float altitude) {
-    *SeiEncoder::latitude = latitude;
-    *SeiEncoder::longitude = longitude;
-    *SeiEncoder::altitude = altitude;
+//    *SeiEncoder::latitude = latitude;
+//    *SeiEncoder::longitude = longitude;
+//    *SeiEncoder::altitude = altitude;
+    memcpy(SeiEncoder::encodedData + 23, &latitude, 4); 
+    memcpy(SeiEncoder::encodedData + 23 + 4, &longitude, 4); 
+    memcpy(SeiEncoder::encodedData + 23 + 8, &altitude, 4); 
+    
 }
 
 void SeiEncoder::setAngles(float roll, float pitch, float yaw) {
-    *SeiEncoder::roll = roll;
-    *SeiEncoder::pitch = pitch;
-    *SeiEncoder::yaw = yaw;
+    // *SeiEncoder::roll = roll;
+    // *SeiEncoder::pitch = pitch;
+    // *SeiEncoder::yaw = yaw;
+    memcpy(SeiEncoder::encodedData + 23 + 12, &pitch, 4); 
+    memcpy(SeiEncoder::encodedData + 23 + 16, &yaw, 4); 
+    memcpy(SeiEncoder::encodedData + 23 + 20, &roll, 4); 
+}
+
+float SeiEncoder::getLatitude(){
+    float tmp;
+    memcpy(SeiEncoder::encodedData + 23, reinterpret_cast<uint8_t*>(&tmp), 4);
+    return tmp;
 }
