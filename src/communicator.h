@@ -6,6 +6,8 @@
 static std::string PUBLISH_URL = "tcp://*:8101";
 
 static std::string GPS_URL = "ipc:///tmp/gps";
+// static std::string GPS_URL = "tcp://192.168.137.7:8890";
+
 
 static std::string STATUS_URL = "tcp://127.0.0.1:8100";
 

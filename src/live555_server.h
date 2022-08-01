@@ -12,7 +12,6 @@
 #include "ipcu555_subsession.h"
 #include <string>
 
-#define DEFAULT_RTSP_ADDRESS "rtsp://localhost:8554/"
 
 typedef enum {
     LIVE555_SERVER_STATUS_PUSHING,
