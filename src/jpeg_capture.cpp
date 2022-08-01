@@ -25,8 +25,9 @@ extern "C"{
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 JpegCapture::JpegCapture(std::string path){
-    filePath = path;
-    std::cout << "JpegCapture::JpegCapture filePath = " << filePath << std::endl;
+    subPath = "";
+    parentPath = path;
+    std::cout << "JpegCapture::JpegCapture filePath = " << parentPath << std::endl;
     this->prefix = std::string(JPEG_DEFAULT_PREFIX_STRING);
 }
 
@@ -58,16 +59,23 @@ void my_copy(volatile unsigned char *dst, volatile unsigned char *src, int sz)
     //     : [dst]"+r"(dst), [src]"+r"(src), [sz]"+r"(sz) : : "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "cc", "memory");
 }
 
-static std::string get_jpeg_full_path_now(std::string parent_path, std::string prefix, std::string suffix){
+static std::string get_url(std::string sub_dir, std::string file_name){
+    return sub_dir + "/" + file_name;
+}
+
+static std::string get_file_name_now(std::string prefix, std::string suffix){
     struct timeval tv;
     time_t curtime;
     gettimeofday(&tv, NULL);
     curtime = tv.tv_sec;
     char time_str[100] = {0};
     strftime(time_str,100,"%y%m%d%H%M%S",localtime(&curtime));
-    std::string full_path = parent_path + std::string("/") + prefix + std::string(time_str) + 
-                            std::to_string(tv.tv_usec / 1000) + suffix; 
-    return full_path;
+    return prefix + std::string(time_str) + std::to_string(tv.tv_usec / 1000) + suffix; 
+
+}
+
+static std::string get_jpeg_full_path(std::string parent_path, std::string sub_path, std::string file_name){
+    return parent_path + std::string("/") + sub_path + std::string("/") + file_name;
 }
 
 
@@ -76,25 +84,14 @@ void JpegCapture::onFrameReceivedCallback(void* address, std::uint64_t size, voi
         std::cout << "jpeg try lock failed" << std::endl;
         return;
     }
-    // std::time_t t = std::time(0);
-    // std::tm * now = std::localtime(&t);
-    
-    // uint64_t now_us = std::chrono::system_clock::now().time_since_epoch().count();
-    
-    // char time_str[100] = {0};
-    // std::strftime(time_str, 100, "%y%m%d%H%M%S", now);
-    // std::string name = this->filePath + std::string("/") + this->prefix + 
-    //                             std::string(time_str) + std::to_string(now_us) + std::string(JPEG_SUFFIX_STRING);
-
-    std::string name = get_jpeg_full_path_now(this->filePath, this->prefix, std::string(JPEG_SUFFIX_STRING));
-    std::cout << name << std::endl;
-    // std::cout << (int) extra_data << std::endl;
+    std::string file_name = get_file_name_now(this->prefix, std::string(JPEG_SUFFIX_STRING));
+    std::string full_path = get_jpeg_full_path(this->parentPath, this->subPath, file_name);
+    std::cout << full_path << std::endl;
     T_BF_DCF_IF_EXIF_INFO *info = (T_BF_DCF_IF_EXIF_INFO*)(extra_data);
 
-    if(saveJpegWithExif(address, size, *info, name.c_str()) == 0){
-    // if(FrameConsumer::save_frame_to_file(name.c_str(), address, size)){
+    if(saveJpegWithExif(address, size, *info, full_path.c_str()) == 0){
         if(onSavedCallback != NULL){
-            onSavedCallback(name, onSavedCallbackData);
+            onSavedCallback(get_url(this->subPath, file_name), onSavedCallbackData);
         }
     }
     pthread_mutex_unlock(&lock);
@@ -105,8 +102,8 @@ void JpegCapture::setSavedCallback(SavedCallback cb, void* data){
     this->onSavedCallbackData = data;
 }
 
-void JpegCapture::setPath(std::string path){
-    this->filePath = path;
+void JpegCapture::setSubPath(std::string path){
+    this->subPath = path;
 }
 
 void JpegCapture::setPrefix(std::string prefix){

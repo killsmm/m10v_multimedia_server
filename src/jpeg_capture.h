@@ -18,13 +18,14 @@ public:
     int stop();
     void onFrameReceivedCallback(void *address, std::uint64_t size, void *extra_data);
     void setSavedCallback(SavedCallback cb, void *data = NULL);
-    void setPath(std::string path);
+    void setSubPath(std::string path);
     void setPrefix(std::string prefix);
     bool saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_IF_EXIF_INFO info, const char *path);
 private:
     SavedCallback onSavedCallback;
     void *onSavedCallbackData;
-    std::string filePath;
+    std::string parentPath;
+    std::string subPath;
     std::string prefix;
 };
 

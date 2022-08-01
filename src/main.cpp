@@ -114,7 +114,7 @@ static void savedCallback(std::string path, void* data){
     if(data != NULL){
         Communicator *comm = static_cast<Communicator *>(data);
         comm->broadcast ("", "{\"cmd\":\"TakePhotoResult\",\"data\":{\"path\":\"/mnt/temp\",\"result\":\"success\"}}");
-        comm->broadcast("jpeg: ", path);
+        comm->broadcast("http://192.168.137.16:8081/", path);
     }
 };
 
@@ -163,7 +163,7 @@ int main(int argc, char** argv){
     DeviceStatus::serial_number.assign(serial_number);
 
     if (flag & FLAG_JPEG) {
-        std::cout << "path = " << jpeg_path << std::endl;
+        std::cout << "parent path = " << jpeg_path << std::endl;
         jpeg_capture = new JpegCapture(std::string(jpeg_path));
         stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_JPG, 16, jpeg_capture);
         jpeg_capture->setSavedCallback(savedCallback, static_cast<void *>(communicator));
@@ -286,7 +286,7 @@ int main(int argc, char** argv){
                 media_recorder->setPrefix(getValueFromJson(json, "data", "prefix", ""));
             }else if(cmd == "PhotoStorage"){
                 if(jpeg_capture != NULL){
-                    jpeg_capture->setPath(getValueFromJson(json, "data", "path", ""));
+                    jpeg_capture->setSubPath(getValueFromJson(json, "data", "path", ""));
                     jpeg_capture->setPrefix(getValueFromJson(json, "data", "prefix", ""));
                 }
             }else if(cmd == "VideoStart"){
