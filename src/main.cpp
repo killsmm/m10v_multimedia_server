@@ -286,7 +286,16 @@ int main(int argc, char** argv){
                 media_recorder->setPrefix(getValueFromJson(json, "data", "prefix", ""));
             }else if(cmd == "PhotoStorage"){
                 if(jpeg_capture != NULL){
-                    jpeg_capture->setSubPath(getValueFromJson(json, "data", "path", ""));
+                    std::string p = getValueFromJson(json, "data", "path", "");
+                    std::cout << "###set path " + p << std::endl;
+                    std::string sub_str = "/run/SD/mmcblk0p1/DCIM";
+                    size_t found = p.find(sub_str);
+                    if(found != std::string::npos){
+                        std::cout << "found parent path" << std::endl;
+                        p.erase(found, found + sub_str.length());
+                        std::cout << "#### final path = " + p << std::endl;
+                    }
+                    jpeg_capture->setSubPath(p);
                     jpeg_capture->setPrefix(getValueFromJson(json, "data", "prefix", ""));
                 }
             }else if(cmd == "VideoStart"){
