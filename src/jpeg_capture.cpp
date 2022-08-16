@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include "gpio_ctrl.h"
 // #include <arm_neon.h>
 extern "C"{
     #include "jpeg-data.h"
@@ -90,6 +91,10 @@ void JpegCapture::onFrameReceivedCallback(void* address, std::uint64_t size, voi
     T_BF_DCF_IF_EXIF_INFO *info = (T_BF_DCF_IF_EXIF_INFO*)(extra_data);
 
     if(saveJpegWithExif(address, size, *info, full_path.c_str()) == 0){
+        //TODO add gpio status here
+        set_feedback_gpio(1);
+        usleep(5000); //5ms
+        set_feedback_gpio(0);
         if(onSavedCallback != NULL){
             onSavedCallback(get_url(this->subPath, file_name), onSavedCallbackData);
         }

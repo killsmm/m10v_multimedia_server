@@ -13,6 +13,7 @@
 #include "sei_encoder.h"
 #include <regex>
 #include "device_status.h"
+#include "gpio_ctrl.h"
 
 //#define RTSP_TEST
 extern "C" {
@@ -20,6 +21,8 @@ extern "C" {
     #include "signal.h"
     #include "unistd.h"
 }
+
+#define FEEDBACK_GPIO 203
 
 #define FLAG_DEBUG (1)
 #define FLAG_VIDEO (1 << 1)
@@ -43,6 +46,8 @@ static Communicator *communicator = NULL;
 static StreamReceiver *stream_receiver = NULL;
 static RtspStreamer *rtsp_streamer = NULL;
 static Live555Server *live555_server = NULL;
+
+
 
 static void print_help() {
     std::cout << "this is help message" << std::endl;
@@ -148,6 +153,8 @@ int main(int argc, char** argv){
             return -1;
         }
     }
+
+    init_jpeg_feedback_gpio();
 
     stream_receiver = new StreamReceiver();
     communicator = new Communicator();
