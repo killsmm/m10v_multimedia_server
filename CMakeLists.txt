@@ -2,9 +2,6 @@ cmake_minimum_required (VERSION 2.8.1)
 
 ######## Project settings ########
 PROJECT(video_recorder)
-SET(LICENSE "TBD")
-SET(CMAKE_SYSROOT /opt/poky/2.2/sysroots/cortexa7-poky-linux-gnueabi)
-include(CTest)
 
 add_compile_options(-mfpu=neon-vfpv4)
 # add_compile_options(-mfloat-abi=hard)
@@ -41,14 +38,22 @@ add_executable(
 target_include_directories(
 	video_recorder
 	PUBLIC
-	/opt/poky/2.2/sysroots/cortexa7-poky-linux-gnueabi/usr/include/gstreamer-1.0
-	/opt/poky/2.2/sysroots/cortexa7-poky-linux-gnueabi/usr/lib/gstreamer-1.0/include
-	/opt/poky/2.2/sysroots/cortexa7-poky-linux-gnueabi/usr/include/glib-2.0
-	/opt/poky/2.2/sysroots/cortexa7-poky-linux-gnueabi/usr/lib/glib-2.0/include
 	src/jpeg-lib
 )
 
+
 message(${CMAKE_CURRENT_SOURCE_DIR})
+message(${PROJECT_SOURCE_DIR})
+
+find_library (usage-env-lib NAMES libUsageEnvironment.a )
+find_library (group-lib NAMES libgroupsock.a )
+find_library (livemedia-lib libliveMedia.a )
+find_library (basic-lib NAMES libBasicUsageEnvironment.a )
+
+message(usage-env-lib=${usage-env-lib})
+message(group-lib=${group-lib})
+message(livemedia-lib=${livemedia-lib})
+message(basic-lib=${basic-lib})
 
 TARGET_LINK_LIBRARIES(
 	video_recorder
@@ -61,10 +66,10 @@ TARGET_LINK_LIBRARIES(
 	gstreamer-1.0
 	exif
 	json-c
-	/home/zhouxinliang/software_projects/m10v_app_layer/m10v_multimedia_server/libliveMedia.a
-	/home/zhouxinliang/software_projects/m10v_app_layer/m10v_multimedia_server/libBasicUsageEnvironment.a
-	/home/zhouxinliang/software_projects/m10v_app_layer/m10v_multimedia_server/libUsageEnvironment.a
-	/home/zhouxinliang/software_projects/m10v_app_layer/m10v_multimedia_server/libgroupsock.a
+	${usage-env-lib}
+	${group-lib}
+	${livemedia-lib}
+	${basic-lib}
 )
 
 
@@ -73,5 +78,5 @@ TARGET_LINK_LIBRARIES(
 
 ######## Install targets ########
 INSTALL(TARGETS video_recorder
-	RUNTIME DESTINATION usr/bin
+	RUNTIME DESTINATION bin
 )
