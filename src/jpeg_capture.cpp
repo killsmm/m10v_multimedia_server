@@ -28,7 +28,7 @@ static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 JpegCapture::JpegCapture(std::string path){
     subPath = "";
     parentPath = path;
-    std::cout << "JpegCapture::JpegCapture filePath = " << parentPath << std::endl;
+    std::cout << "JpegCapture::JpegCapture 1filePath = " << parentPath << std::endl;
     this->prefix = std::string(JPEG_DEFAULT_PREFIX_STRING);
 }
 
@@ -79,6 +79,18 @@ static std::string get_jpeg_full_path(std::string parent_path, std::string sub_p
     return parent_path + std::string("/") + sub_path + std::string("/") + file_name;
 }
 
+static int save_picture(const char* full_path, void *address, uint64_t ori_size){
+    int ret = 0;
+    int fd = open(full_path, O_CREAT | O_RDWR);
+    if(fd < 0){
+        printf("open jpeg original file failed\n");
+        return -1;
+    }else{
+        ret = write(fd, address, ori_size);
+        close(fd);
+    }
+    return ret;
+}
 
 void JpegCapture::onFrameReceivedCallback(void* address, std::uint64_t size, void *extra_data) {
     if(pthread_mutex_trylock(&lock) != 0){
@@ -86,19 +98,26 @@ void JpegCapture::onFrameReceivedCallback(void* address, std::uint64_t size, voi
         return;
     }
     std::string file_name = get_file_name_now(this->prefix, std::string(JPEG_SUFFIX_STRING));
-    std::string full_path = get_jpeg_full_path(this->parentPath, this->subPath, file_name);
+    std::string full_path = get_jpeg_full_path(this->parentPath, "", "last.jpg");
     std::cout << full_path << std::endl;
     T_BF_DCF_IF_EXIF_INFO *info = (T_BF_DCF_IF_EXIF_INFO*)(extra_data);
-
-    if(saveJpegWithExif(address, size, *info, full_path.c_str()) == 0){
-        //TODO add gpio status here
-        set_feedback_gpio(1);
-        usleep(5000); //5ms
-        set_feedback_gpio(0);
+    if(save_picture(full_path.c_str(), address, size)){
+        // set_feedback_gpio(1);
+        // usleep(5000); //5ms
+        // set_feedback_gpio(0);
         if(onSavedCallback != NULL){
-            onSavedCallback(get_url(this->subPath, file_name), onSavedCallbackData);
+            onSavedCallback(get_url("", "last.jpg"), onSavedCallbackData);
         }
     }
+    // if(saveJpegWithExif(address, size, *info, full_path.c_str()) == 0){
+    //     //TODO add gpio status here
+    //     set_feedback_gpio(1);
+    //     usleep(5000); //5ms
+    //     set_feedback_gpio(0);
+    //     if(onSavedCallback != NULL){
+    //         onSavedCallback(get_url(this->subPath, file_name), onSavedCallbackData);
+    //     }
+    // }
     pthread_mutex_unlock(&lock);
 }
 
@@ -155,6 +174,7 @@ static GPS_DEGREE float_to_degree(float decimal){
     ret.seconds = static_cast<uint32_t>(((decimal - ret.degrees) * 60 - ret.minutes) * 60);
     return ret;
 }
+
 
 static int save_picture_with_exif(const char* full_path, void *address, uint64_t ori_size, ExifData *exif){
     int ret = 0;
