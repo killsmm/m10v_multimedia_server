@@ -119,7 +119,7 @@ static void savedCallback(std::string path, void* data){
     if(data != NULL){
         Communicator *comm = static_cast<Communicator *>(data);
         comm->broadcast ("", "{\"cmd\":\"TakePhotoResult\",\"data\":{\"path\":\"/mnt/temp\",\"result\":\"success\"}}");
-        comm->broadcast("http://192.168.137.16:8082/", path);
+        comm->broadcast("http://192.168.137.16:1234/", path);
     }
 };
 
