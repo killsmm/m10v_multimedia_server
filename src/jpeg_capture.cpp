@@ -75,49 +75,39 @@ static std::string get_file_name_now(std::string prefix, std::string suffix){
 
 }
 
+static std::string get_temp_file_name(){
+    static int num = 0;
+    if (num == JPEG_TEMPFILES_NUMBER){
+        num = 0;
+    }
+    num++;
+    return std::string("tmp") + std::to_string(num) + std::string(".jpg");
+}
+
 static std::string get_jpeg_full_path(std::string parent_path, std::string sub_path, std::string file_name){
     return parent_path + std::string("/") + sub_path + std::string("/") + file_name;
 }
 
-static int save_picture(const char* full_path, void *address, uint64_t ori_size){
-    int ret = 0;
-    int fd = open(full_path, O_CREAT | O_RDWR);
-    if(fd < 0){
-        printf("open jpeg original file failed\n");
-        return -1;
-    }else{
-        ret = write(fd, address, ori_size);
-        close(fd);
-    }
-    return ret;
-}
+
 
 void JpegCapture::onFrameReceivedCallback(void* address, std::uint64_t size, void *extra_data) {
     if(pthread_mutex_trylock(&lock) != 0){
         std::cout << "jpeg try lock failed" << std::endl;
         return;
     }
-    std::string file_name = get_file_name_now(this->prefix, std::string(JPEG_SUFFIX_STRING));
-    std::string full_path = get_jpeg_full_path(this->parentPath, "", "last.jpg");
+    std::string file_name = get_temp_file_name();
+    std::string full_path = get_jpeg_full_path(this->parentPath, "", file_name);
     std::cout << full_path << std::endl;
     T_BF_DCF_IF_EXIF_INFO *info = (T_BF_DCF_IF_EXIF_INFO*)(extra_data);
-    if(save_picture(full_path.c_str(), address, size)){
+    if(saveJpegWithExif(address, size, *info, full_path.c_str()) == 0){
+        //TODO add gpio status here
         // set_feedback_gpio(1);
         // usleep(5000); //5ms
         // set_feedback_gpio(0);
         if(onSavedCallback != NULL){
-            onSavedCallback(get_url("", "last.jpg"), onSavedCallbackData);
+            onSavedCallback(get_url("", file_name), onSavedCallbackData);
         }
     }
-    // if(saveJpegWithExif(address, size, *info, full_path.c_str()) == 0){
-    //     //TODO add gpio status here
-    //     set_feedback_gpio(1);
-    //     usleep(5000); //5ms
-    //     set_feedback_gpio(0);
-    //     if(onSavedCallback != NULL){
-    //         onSavedCallback(get_url(this->subPath, file_name), onSavedCallbackData);
-    //     }
-    // }
     pthread_mutex_unlock(&lock);
 }
 
@@ -187,6 +177,7 @@ static int save_picture_with_exif(const char* full_path, void *address, uint64_t
     jpeg_app_head[2] = (jpeg_app_size & 0xff00) >> 8;
     jpeg_app_head[3] = jpeg_app_size & 0xff;
 #if 1
+    remove(full_path);
     int fd = open(full_path, O_CREAT | O_RDWR);
     if(fd < 0){
         printf("open jpeg original file failed\n");

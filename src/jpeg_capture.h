@@ -7,6 +7,8 @@
 #define JPEG_DEFAULT_PREFIX_STRING "FTS-"
 #define JPEG_SUFFIX_STRING ".jpg"
 
+#define JPEG_TEMPFILES_NUMBER 3 // how many temp files in total
+
 typedef void (*SavedCallback)(std::string path, void *data);
 
 class JpegCapture : public FrameConsumer
