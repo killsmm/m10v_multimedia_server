@@ -45,6 +45,8 @@ target_include_directories(
 message(${CMAKE_CURRENT_SOURCE_DIR})
 message(${PROJECT_SOURCE_DIR})
 
+set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+
 find_library (usage-env-lib NAMES libUsageEnvironment.a )
 find_library (group-lib NAMES libgroupsock.a )
 find_library (livemedia-lib libliveMedia.a )

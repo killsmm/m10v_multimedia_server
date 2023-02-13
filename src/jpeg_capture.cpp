@@ -350,9 +350,10 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
 
     /* focal length */
     uint8_t focal_length[exif_format_get_size(EXIF_FORMAT_RATIONAL)];
+    
     exif_set_rational(focal_length, byteOrder, ExifRational{
-                                                .numerator = 350,
-                                                .denominator = 10
+                                                .numerator = info.focal_length.nume,
+                                                .denominator = info.focal_length.denomi
                                                 });
     new_exif_entry(content, EXIF_TAG_FOCAL_LENGTH, EXIF_FORMAT_RATIONAL, 
                                                     focal_length, 1);
