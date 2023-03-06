@@ -34,6 +34,7 @@ static bool app_abort = false;
 static char *video_path = NULL;
 static char *jpeg_path = NULL;
 static char *rtsp_channel_name = NULL;
+static char *ram_dcim_url = NULL;
 
 
 
@@ -119,7 +120,7 @@ static void savedCallback(std::string path, void* data){
     if(data != NULL){
         Communicator *comm = static_cast<Communicator *>(data);
         comm->broadcast ("", "{\"cmd\":\"TakePhotoResult\",\"data\":{\"path\":\"/mnt/temp\",\"result\":\"success\"}}");
-        comm->broadcast("http://192.168.137.16:1234/", path);
+        comm->broadcast(std::string(ram_dcim_url), path);
     }
 };
 
@@ -127,7 +128,7 @@ int main(int argc, char** argv){
     int flag = 0;
     int c = 0;
     int ret = 0;
-    while ((c = getopt(argc, argv, "s:mdj:v:")) != -1) {
+    while ((c = getopt(argc, argv, "b:s:mdj:v:")) != -1) {
         switch (c)
         {
         case 'd':
@@ -144,6 +145,8 @@ int main(int argc, char** argv){
             flag |= FLAG_JPEG;
             jpeg_path = optarg;
             break;
+        case 'b':
+            ram_dcim_url = optarg;
         case 's':
             flag |= FLAG_RTSP;
             rtsp_channel_name = optarg;
