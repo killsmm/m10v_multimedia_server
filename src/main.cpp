@@ -147,6 +147,7 @@ int main(int argc, char** argv){
             break;
         case 'b':
             ram_dcim_url = optarg;
+            break;
         case 's':
             flag |= FLAG_RTSP;
             rtsp_channel_name = optarg;
