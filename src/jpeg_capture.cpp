@@ -166,7 +166,7 @@ static GPS_DEGREE float_to_degree(float decimal){
 }
 
 
-static int save_picture_with_exif(const char* full_path, void *address, uint64_t ori_size, ExifData *exif){
+static int save_picture_with_exif(const char* full_path, void *address, uint64_t ori_size, ExifData *exif, std::string xmp_str = ""){
     int ret = 0;
     uint32_t exif_length = 0;
     uint8_t *exif_data = NULL;
@@ -180,23 +180,16 @@ static int save_picture_with_exif(const char* full_path, void *address, uint64_t
     jpeg_app_head[2] = (jpeg_app_size & 0xff00) >> 8;
     jpeg_app_head[3] = jpeg_app_size & 0xff;
 
-    std::string xmp_info = "<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n"
-                            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.4.0\">\n"
-                            "  <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
-                            "    <rdf:Description rdf:about=\"\" xmlns:exif=\"http://ns.adobe.com/exif/1.0/\">\n"
-                            "      <exif:Yaw>45</exif:Yaw>\n"
-                            "      <exif:Pitch>30</exif:Pitch>\n"
-                            "      <exif:Roll>60</exif:Roll>\n"
-                            "    </rdf:Description>\n"
-                            "  </rdf:RDF>\n"
-                            "</x:xmpmeta>\n<?xpacket end=\"w\"?>\n";
+    uint8_t xmp_data_head[4] = {0xff, 0xe1, 0x00, 0x00};
+    if (xmp_str != "") {
+        uint32_t xmp_data_length = xmp_str.length();
+        xmp_data_head[2] = (xmp_data_length & 0xff00) >> 8;
+        xmp_data_head[3] = xmp_data_length & 0xff;
+    }
+
     
 
-    uint32_t xmp_data_length = xmp_info.length();
-    std::cout << "xmp_data_length = " << xmp_data_length << std::endl;
-    uint8_t xmp_data_head[4] = {0xff, 0xe1};
-    xmp_data_head[2] = (xmp_data_length & 0xff00) >> 8;
-    xmp_data_head[3] = xmp_data_length & 0xff;
+
 #if 1
     remove(full_path);
     int fd = open(full_path, O_CREAT | O_RDWR);
@@ -207,7 +200,7 @@ static int save_picture_with_exif(const char* full_path, void *address, uint64_t
         ret |= write(fd, jpeg_app_head, 4);
         ret |= write(fd, exif_data, exif_length);
         ret |= write(fd, xmp_data_head, 4);
-        ret |= write(fd, xmp_info.c_str(), xmp_info.length());
+        ret |= write(fd, xmp_str.c_str(), xmp_str.length());
         ret |= write(fd, address + 2, ori_size - 2);
         close(fd);
     }
@@ -428,10 +421,6 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
                                     DeviceStatus::internal_code.c_str());
     new_exif_entry(content, EXIF_TAG_MAKER_NOTE, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(maker_note), strlen(maker_note) + 1);
 
-    char *user_comment = "<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'><rdf:Description rdf:about='' xmlns:dc='http://purl.org/dc/elements/1.1/'><dc:title>Example Title</dc:title><dc:description>Example Description</dc:description></rdf:Description></rdf:RDF></x:xmpmeta>";
-
-    new_exif_entry(content, (ExifTag)EXIF_TAG_USER_COMMENT, EXIF_FORMAT_ASCII, reinterpret_cast<uint8_t *>(user_comment), strlen(user_comment));
-
 
     /* shutter number */
     // struct maker_note {
@@ -533,7 +522,19 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     jpeg_data_free(jpegData);
 #else
     print_operation_time("save_file_start");
-    int ret = save_picture_with_exif(path, address, size, exif);
+
+    std::string xmp_info = "<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n"
+                        "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.4.0\">\n"
+                        "  <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
+                        "    <rdf:Description rdf:about=\"\" xmlns:exif=\"http://ns.adobe.com/exif/1.0/\">\n"
+                        "      <exif:Yaw>"   + std::to_string(*SeiEncoder::yaw)   + "</exif:Yaw>\n"
+                        "      <exif:Pitch>" + std::to_string(*SeiEncoder::pitch) + "</exif:Pitch>\n"
+                        "      <exif:Roll>"  + std::to_string(*SeiEncoder::roll)  + "</exif:Roll>\n"
+                        "    </rdf:Description>\n"
+                        "  </rdf:RDF>\n"
+                        "</x:xmpmeta>\n<?xpacket end=\"w\"?>\n";
+
+    int ret = save_picture_with_exif(path, address, size, exif, xmp_info);
     print_operation_time("save_file_over");
     exif_data_unref(exif);
 #endif
