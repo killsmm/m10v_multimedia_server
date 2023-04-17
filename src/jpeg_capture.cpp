@@ -522,7 +522,7 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     jpeg_data_free(jpegData);
 #else
     print_operation_time("save_file_start");
-
+/*
     std::string xmp_info = "<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n"
                         "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.4.0\">\n"
                         "  <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
@@ -533,7 +533,90 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
                         "    />\n"
                         "  </rdf:RDF>\n"
                         "</x:xmpmeta>\n<?xpacket end=\"w\"?>\n";
+*/
+    std::string xmp_info = "<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\
+    <x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"XMP Core 4.4.0-Exiv2\">\
+    <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\
+        <rdf:Description rdf:about=\"DJI Meta Data\"\
+            xmlns:share=\"http://www.shareuavtec.com/\"\
+            xmlns:tiff=\"http://ns.adobe.com/tiff/1.0/\"\
+            xmlns:drone-dji=\"http://www.dji.com/drone-dji/1.0/\"\
+            share:Toolkit=\"XMP Core 4.4.0-Exiv2\"\
+            share:SN=\"P102D220026\"\
+            share:SoftwareVersion=\"1.058\"\
+            share:DewarpData=\"\"\
+            share:Lat=\"" + std::to_string(*SeiEncoder::latitude)  + "\"\
+            share:Lon=\"" + std::to_string(*SeiEncoder::longitude)  + "\"\
+            share:AbsAlt=\"" + std::to_string(*SeiEncoder::altitude)  + "\"\
+            share:RltAlt=\"0\"\
+            share:Pitch=\"" + std::to_string(*SeiEncoder::pitch)  + "\"\
+            share:Roll=\"" + std::to_string(*SeiEncoder::roll)  + "\"\
+            share:Yaw=\"" + std::to_string(*SeiEncoder::yaw)  + "\"\
+            share:RTK=\"50\"\
+            share:Perspectives=\"LOWER\"\
+            share:WbMode=\"daylight\"\
+            share:ColorMode=\"lively\"\
+            share:DateTime=\"\"\
+            tiff:Model=\"SHARE104S_X\"\
+            drone-dji:DewarpFlag=\"0\"\
+            drone-dji:DewarpData=\"\"\
+            drone-dji:RtkFlag=\"50\"\
+            drone-dji:RtkStdLon=\"0.0\"\
+            drone-dji:RtkStdLat=\"0.0\"\
+            drone-dji:RtkStdHgt=\"0.0\"\
+            drone-dji:AbsoluteAltitude=\"" + std::to_string(*SeiEncoder::altitude)  + "\"\
+            drone-dji:GpsLatitude=\"" + std::to_string(*SeiEncoder::latitude)  + "\"\
+            drone-dji:GpsLongitude=\"" + std::to_string(*SeiEncoder::longitude)  + "\"\
+            drone-dji:GimbalRollDegree=\"" + std::to_string(*SeiEncoder::roll)  + "\"\
+            drone-dji:GimbalYawDegree=\"" + std::to_string(*SeiEncoder::yaw)  + "\"\
+            drone-dji:GimbalPitchDegree=\"" + std::to_string(*SeiEncoder::pitch)  + "\"\
+        />\
+    </rdf:RDF>\
+    </x:xmpmeta>\
+    <?xpacket end=\"w\"?>";
 
+/*
+    std::string xmp_info = "<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\
+<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"XMP Core 4.4.0-Exiv2\">\
+  <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\
+    <rdf:Description rdf:about=\"DJI Meta Data\"\
+        xmlns:share=\"http://www.shareuavtec.com/\"\
+        xmlns:tiff=\"http://ns.adobe.com/tiff/1.0/\"\
+        xmlns:drone-dji=\"http://www.dji.com/drone-dji/1.0/\"\
+        share:Toolkit=\"XMP Core 4.4.0-Exiv2\"\
+        share:SN=\"P102D220026\"\
+        share:SoftwareVersion=\"1.058\"\
+        share:DewarpData=\"True,4,x,6144,4096,Perspective,Visible,23.1,25.39289665,-0.04584723,0.04138114,0.03775645,-0.00035709,-0.00016865,true,3119.38,2060.46,1,0,2022-06-08 11:50:34\"\
+        share:Lat=\"40.35914417\"\
+        share:Lon=\"117.13149927\"\
+        share:AbsAlt=\"755.73093426\"\
+        share:RltAlt=\"429.60848999\"\
+        share:Pitch=\"-89.97763\"\
+        share:Roll=\"63.42845\"\
+        share:Yaw=\"-83.42845\"\
+        share:RTK=\"50\"\
+        share:Perspectives=\"LOWER\"\
+        share:WbMode=\"daylight\"\
+        share:ColorMode=\"lively\"\
+        share:DateTime=\"2022-06-08 11:50:34\"\
+        tiff:Model=\"SHARE104S_X\"\
+        drone-dji:DewarpFlag=\"0\"\
+        drone-dji:DewarpData=\"2022-06-08;6753.85,6753.85,47.37988281,12.45996094,-0.04584723,0.04138114,-0.00035709,-0.00016865,0.03775645\"\
+        drone-dji:RtkFlag=\"50\"\
+        drone-dji:RtkStdLon=\"0.01141\"\
+        drone-dji:RtkStdLat=\"0.01247\"\
+        drone-dji:RtkStdHgt=\"0.02413\"\
+        drone-dji:AbsoluteAltitude=\"755.73093426\"\
+        drone-dji:GpsLatitude=\"40.35914417\"\
+        drone-dji:GpsLongitude=\"117.13149927\"\
+        drone-dji:GimbalRollDegree=\"63.42845\"\
+        drone-dji:GimbalYawDegree=\"-83.42845\"\
+        drone-dji:GimbalPitchDegree=\"-89.97763\"\
+    />\
+  </rdf:RDF>\
+</x:xmpmeta>\
+<?xpacket end=\"w\"?>";
+*/
     int ret = save_picture_with_exif(path, address, size, exif, xmp_info);
     print_operation_time("save_file_over");
     exif_data_unref(exif);

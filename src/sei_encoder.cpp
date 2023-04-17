@@ -32,6 +32,8 @@ void SeiEncoder::init() {
     memcpy(SeiEncoder::encodedData, sei_head, 23);
     memset(SeiEncoder::encodedData + 23, 0x00, SEI_BUF_LENGTH - 23);
     *(SeiEncoder::encodedData + 23 + 24) = 0x80;
+    setLocation(66.0, 66.0, 66.0);
+    setAngles(66.0, -66.0, 66.0);
 }
 
 void SeiEncoder::deinit(){
@@ -65,8 +67,8 @@ void SeiEncoder::setLocation(float latitude, float longitude, float altitude) {
 //    *SeiEncoder::latitude = latitude;
 //    *SeiEncoder::longitude = longitude;
 //    *SeiEncoder::altitude = altitude;
-    memcpy(SeiEncoder::encodedData + 23, &latitude, 4); 
-    memcpy(SeiEncoder::encodedData + 23 + 4, &longitude, 4); 
+    memcpy(SeiEncoder::encodedData + 23, &longitude, 4); 
+    memcpy(SeiEncoder::encodedData + 23 + 4, &latitude, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 8, &altitude, 4); 
     
 }
