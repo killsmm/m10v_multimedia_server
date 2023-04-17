@@ -526,11 +526,11 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     std::string xmp_info = "<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n"
                         "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.4.0\">\n"
                         "  <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
-                        "    <rdf:Description rdf:about=\"\" xmlns:exif=\"http://ns.adobe.com/exif/1.0/\">\n"
-                        "      <exif:Yaw>"   + std::to_string(*SeiEncoder::yaw)   + "</exif:Yaw>\n"
-                        "      <exif:Pitch>" + std::to_string(*SeiEncoder::pitch) + "</exif:Pitch>\n"
-                        "      <exif:Roll>"  + std::to_string(*SeiEncoder::roll)  + "</exif:Roll>\n"
-                        "    </rdf:Description>\n"
+                        "    <rdf:Description rdf:about=\"\" xmlns:exif=\"http://ns.adobe.com/exif/1.0/\""
+                        "       share:Pitch=\"" + std::to_string(*SeiEncoder::yaw)  + "\""
+                        "       share:Roll=\"" + std::to_string(*SeiEncoder::pitch) + "\""
+                        "       share:Yaw=\"" + std::to_string(*SeiEncoder::roll) + "\""
+                        "    />\n"
                         "  </rdf:RDF>\n"
                         "</x:xmpmeta>\n<?xpacket end=\"w\"?>\n";
 
