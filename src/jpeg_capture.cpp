@@ -171,7 +171,7 @@ static int save_picture_with_exif(const char* full_path, void *address, uint64_t
     uint32_t exif_length = 0;
     uint8_t *exif_data = NULL;
 
-
+    std::string xmp_title = "http://ns.adobe.com/xap/1.0/";
 
     exif_data_save_data(exif, &exif_data, &exif_length);
     
@@ -182,7 +182,7 @@ static int save_picture_with_exif(const char* full_path, void *address, uint64_t
 
     uint8_t xmp_data_head[4] = {0xff, 0xe1, 0x00, 0x00};
     if (xmp_str != "") {
-        uint32_t xmp_data_length = xmp_str.length() + 2;
+        uint32_t xmp_data_length = xmp_str.length() + xmp_title.length() + 1 + 2;
         xmp_data_head[2] = (xmp_data_length & 0xff00) >> 8;
         xmp_data_head[3] = xmp_data_length & 0xff;
     }
@@ -200,6 +200,8 @@ static int save_picture_with_exif(const char* full_path, void *address, uint64_t
         ret |= write(fd, jpeg_app_head, 4);
         ret |= write(fd, exif_data, exif_length);
         ret |= write(fd, xmp_data_head, 4);
+        ret |= write(fd, xmp_title.c_str(), xmp_title.length());
+        ret |= write(fd, "\0", 1);
         ret |= write(fd, xmp_str.c_str(), xmp_str.length());
         ret |= write(fd, address + 2, ori_size - 2);
         close(fd);
@@ -534,7 +536,7 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
                         "  </rdf:RDF>\n"
                         "</x:xmpmeta>\n<?xpacket end=\"w\"?>\n";
 */
-    std::string xmp_info = "http://ns.adobe.com/xap/1.0/\0<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\
+    std::string xmp_info = "<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\
     <x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"XMP Core 4.4.0-Exiv2\">\
     <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\
         <rdf:Description rdf:about=\"DJI Meta Data\"\
