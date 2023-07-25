@@ -60,7 +60,7 @@ static AVStream* createVideoStream(AVFormatContext *context, AVCodecID codec_id,
     stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
     stream->codecpar->width = width;
     stream->codecpar->height = height;
-    stream->time_base = {1, 25};
+    stream->time_base = {1, frame_rate};
     return stream;
 }
 
