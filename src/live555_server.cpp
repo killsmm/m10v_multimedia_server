@@ -26,15 +26,14 @@ Live555Server::~Live555Server() {
 
 
 void Live555Server::onFrameReceivedCallback(void* address, std::uint64_t size, void *extra_data) {
-
+    if(this->isStarted == false){
+        this->start();
+        return;
+    }
     if(this->subSession->ipcuFramedSource != NULL){
-        if(this->isStarted == false){
-            this->start();
-        }else{
-            int sei_length = 0;
-            uint8_t *sei_data = SeiEncoder::getEncodedSei(&sei_length);
-            this->subSession->ipcuFramedSource->writeFrameToBuf((uint8_t *)address, size, sei_data, sei_length);
-        }
+        int sei_length = 0;
+        uint8_t *sei_data = SeiEncoder::getEncodedSei(&sei_length);
+        this->subSession->ipcuFramedSource->writeFrameToBuf((uint8_t *)address, size, sei_data, sei_length);
     }
 }
 
