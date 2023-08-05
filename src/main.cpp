@@ -213,7 +213,7 @@ int main(int argc, char** argv){
 #endif
         live555_server = new Live555Server(std::string(rtsp_channel_name));
         stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, 0, live555_server);
-        live555_server->start();
+        // live555_server->start();
     }
     
     if (flag & FLAG_VIDEO) {

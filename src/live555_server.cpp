@@ -2,6 +2,7 @@
 #include "sei_encoder.h"
 
 Live555Server::Live555Server(std::string stream_name) {
+    this->isStarted = false;
     this->scheduler = BasicTaskScheduler::createNew();
 	this->env = BasicUsageEnvironment::createNew(*this->scheduler);	
     this->rtspServer = RTSPServer::createNew(*this->env);    
@@ -25,21 +26,28 @@ Live555Server::~Live555Server() {
 
 
 void Live555Server::onFrameReceivedCallback(void* address, std::uint64_t size, void *extra_data) {
+
     if(this->subSession->ipcuFramedSource != NULL){
-        int sei_length = 0;
-        uint8_t *sei_data = SeiEncoder::getEncodedSei(&sei_length);
-        this->subSession->ipcuFramedSource->writeFrameToBuf((uint8_t *)address, size, sei_data, sei_length);
+        if(this->isStarted == false){
+            this->start();
+        }else{
+            int sei_length = 0;
+            uint8_t *sei_data = SeiEncoder::getEncodedSei(&sei_length);
+            this->subSession->ipcuFramedSource->writeFrameToBuf((uint8_t *)address, size, sei_data, sei_length);
+        }
     }
 }
 
 void Live555Server::stop() {
+    // pthread_join(this->thread, NULL);
     pthread_exit(&this->thread);
+    this->isStarted = false;
 }
 
 void Live555Server::start() {
+    this->isStarted = true;
     pthread_create(&this->thread, NULL, [](void * data) -> void* { 
                         BasicUsageEnvironment *e = static_cast<BasicUsageEnvironment*>(data);
                         e->taskScheduler().doEventLoop();
                         }, (void *)this->env);
-    
 }

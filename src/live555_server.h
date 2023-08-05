@@ -36,7 +36,7 @@ class Live555Server : public FrameConsumer {
         ServerMediaSession* serverMediaSession;
         IPCU555Subsession *subSession;
         pthread_t thread;
-
+        bool isStarted;
 };
 
 
