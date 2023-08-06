@@ -16,7 +16,7 @@ Live555Server::Live555Server(std::string stream_name) {
     //H264VideoFileServerMediaSubsession *sub = H264VideoFileServerMediaSubsession::createNew(*this->env, "video_480x360_fps30.264", true);
     // this->serverMediaSession->addSubsession(sub);
 
-    this->rtspServer->addServerMediaSession(this->serverMediaSession);
+    
 }
 
 Live555Server::~Live555Server() {
@@ -45,6 +45,7 @@ void Live555Server::stop() {
 
 void Live555Server::start() {
     this->isStarted = true;
+    this->rtspServer->addServerMediaSession(this->serverMediaSession);
     pthread_create(&this->thread, NULL, [](void * data) -> void* { 
                         BasicUsageEnvironment *e = static_cast<BasicUsageEnvironment*>(data);
                         e->taskScheduler().doEventLoop();
