@@ -1,0 +1,131 @@
+cmake_minimum_required (VERSION 2.8.1)
+
+######## Project settings ########
+PROJECT(video_recorder)
+
+# add_compile_options(-mfpu=neon-vfpv4)
+# add_compile_options(-mfloat-abi=hard)
+
+add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+
+######## Build and include settings ########
+include_directories(
+	/usr/local/include
+	/usr/local/include/liveMedia
+	/usr/local/include/BasicUsageEnvironment
+	/usr/local/include/groupsock
+	/usr/local/include/UsageEnvironment
+	/usr/local/ssl/include
+)
+
+
+
+link_directories(
+	${LINK_DIRECTORIES}
+)
+
+
+
+file(GLOB SOURCES
+	"src/*.cpp"
+	"src/*.c"
+	"src/*.h"
+	"src/jpeg-lib/*"
+	# "src/sample_library.cpp"
+)
+
+
+add_executable(
+	video_recorder
+
+	${SOURCES}
+)
+
+
+target_include_directories(
+	video_recorder
+	PUBLIC
+	src/jpeg-lib
+)
+
+
+message(${CMAKE_CURRENT_SOURCE_DIR})
+message(${PROJECT_SOURCE_DIR})
+
+set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+
+
+
+find_library (usage-env-lib NAMES libUsageEnvironment.a )
+find_library (group-lib NAMES libgroupsock.a )
+find_library (livemedia-lib libliveMedia.a )
+find_library (basic-lib NAMES libBasicUsageEnvironment.a )
+
+find_library (ssl-lib NAMES libssl.so PATHS /usr/local/ssl/lib64)
+find_library (crypto-lib NAMES libcrypto.so PATHS /usr/local/ssl/lib64)
+
+
+message(usage-env-lib=${usage-env-lib})
+message(group-lib=${group-lib})
+message(livemedia-lib=${livemedia-lib})
+message(basic-lib=${basic-lib})
+message(ssl-lib=${ssl-lib})
+message(crypto-lib=${crypto-lib})
+
+TARGET_LINK_LIBRARIES(
+	video_recorder
+	
+	avformat
+	avcodec
+	# cmfwk
+	pthread
+	avutil
+	zmq
+	gstreamer-1.0
+	exif
+	json-c
+	boost_program_options
+	boost_system
+	${livemedia-lib}
+	${group-lib}
+	${basic-lib}
+	${usage-env-lib}
+	ssl
+	crypto
+)
+
+
+
+#add_test(Mytest video_recorder )
+
+######## Install targets ########
+INSTALL(TARGETS video_recorder
+	RUNTIME DESTINATION bin
+)
+
+
+find_package(GTest REQUIRED)
+
+# add the source files under tests folder to SOURCE_FILES
+file(GLOB SOURCE_FILES test/*.cpp)
+
+add_executable(runTests ${SOURCE_FILES}
+)
+
+include_directories(${GTEST_INCLUDE_DIRS} /usr/local/ssl/include include)
+
+target_link_directories(runTests PUBLIC /usr/local/ssl/lib64)
+
+message(${GTEST_INCLUDE_DIRS})
+message(${GTEST_LIBRARIES})
+
+target_link_libraries(runTests ${GTEST_LIBRARIES} 
+						pthread 
+						${livemedia-lib}
+						${group-lib}
+						${basic-lib}
+						${usage-env-lib}
+						ssl
+						crypto
+						)
+

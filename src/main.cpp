@@ -14,6 +14,9 @@
 #include <regex>
 #include "device_status.h"
 #include "gpio_ctrl.h"
+#include "boost/program_options.hpp"
+#include "configs.h"
+#include "http_server.hpp"
 
 //#define RTSP_TEST
 extern "C" {
@@ -31,11 +34,12 @@ extern "C" {
 #define FLAG_RTSP (1 << 4)
 
 static bool app_abort = false;
-static char *video_path = NULL;
-static char *jpeg_path = NULL;
-static char *rtsp_channel_name = NULL;
-static char *ram_dcim_url = NULL;
 
+static std::string video_path = DEFAULT_VIDOE_RECORD_PATH;
+static std::string jpeg_path = DEFUALT_JPEG_PATH;
+static std::string rtsp_channel_name = DEFAULT_RTSP_CHANNEL_NAME;
+static std::string ram_dcim_path = DEFAULT_RAM_DCIM_PATH;
+static std::string ram_dcim_url = "http://";
 
 
 
@@ -50,9 +54,41 @@ static Live555Server *live555_server = NULL;
 
 
 
-static void print_help() {
-    std::cout << "this is help message" << std::endl;
+std::string getIpAddress(const char* interfaceName) {
+    struct addrinfo hints, *res;
+    int status;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC; // Use AF_INET for IPv4 or AF_INET6 for IPv6
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ((status = getaddrinfo(interfaceName, NULL, &hints, &res)) != 0) {
+        std::cerr << "getaddrinfo: " << gai_strerror(status) << std::endl;
+        return ""; // Return an empty string on error
+    }
+
+    for (struct addrinfo* p = res; p != nullptr; p = p->ai_next) {
+        void* addr;
+        if (p->ai_family == AF_INET) { // IPv4
+            struct sockaddr_in* ipv4 = (struct sockaddr_in*)p->ai_addr;
+            addr = &(ipv4->sin_addr);
+        } else { // IPv6
+            struct sockaddr_in6* ipv6 = (struct sockaddr_in6*)p->ai_addr;
+            addr = &(ipv6->sin6_addr);
+        }
+
+        char ipstr[INET6_ADDRSTRLEN];
+        // Convert the IP address to a string
+        inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
+        freeaddrinfo(res); // Free the addrinfo structure
+
+        return ipstr; // Return the IP address directly
+    }
+
+    return ""; // Return an empty string if IP address is not found
 }
+
+
 
 static void signal_handler(int signal) {
     app_abort = true;
@@ -124,39 +160,78 @@ static void savedCallback(std::string path, void* data){
     }
 };
 
+
+
+static void startWebServer(std::string path) {
+    try {
+        boost::asio::io_service io_service;
+        HttpServer server(io_service, 8080, path);
+        io_service.run();
+    }
+    catch (std::exception& e) {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
+}
+
+namespace po = boost::program_options;
+
 int main(int argc, char** argv){
     int flag = 0;
-    int c = 0;
-    int ret = 0;
-    while ((c = getopt(argc, argv, "b:s:mdj:v:")) != -1) {
-        switch (c)
-        {
-        case 'd':
-            flag |= FLAG_DEBUG;
-            break;
-        case 'v':
-            flag |= FLAG_VIDEO;
-            video_path = optarg;
-            break;
-        case 'm':
-            flag |= FLAG_MJPEG;
-            break;
-        case 'j':
-            flag |= FLAG_JPEG;
-            jpeg_path = optarg;
-            break;
-        case 'b':
-            ram_dcim_url = optarg;
-            break;
-        case 's':
-            flag |= FLAG_RTSP;
-            rtsp_channel_name = optarg;
-            break;
-        default:
-            print_help();
-            return -1;
-        }
+
+    po::options_description desc("Allowed options");
+    desc.add_options()
+        ("help,h", "produce help message")
+        ("debug,d", "enable debug mode")
+        ("video,v", po::value<std::string>(), "set video path")
+        ("mjpeg,m", "enable MJPEG mode")
+        ("jpeg,j", po::value<std::string>(), "set JPEG path")
+        ("ram_dcim_path,b", po::value<std::string>(), "set RAM DCIM URL")
+        ("rtsp,s", po::value<std::string>(), "set RTSP channel name");
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if (vm.count("debug")) {
+        flag |= FLAG_DEBUG;
     }
+
+    if (vm.count("video")) {
+        flag |= FLAG_VIDEO;
+        video_path = vm["video"].as<std::string>();
+    }
+
+    if (vm.count("mjpeg")) {
+        flag |= FLAG_MJPEG;
+    }
+
+    if (vm.count("jpeg")) {
+        flag |= FLAG_JPEG;
+        jpeg_path = vm["jpeg"].as<std::string>();
+    }
+
+    if (vm.count("ram_dcim_path")) {
+        ram_dcim_path = vm["ram_dcim_path"].as<std::string>();
+    }
+
+    if (vm.count("rtsp")) {
+        flag |= FLAG_RTSP;
+        rtsp_channel_name = vm["rtsp"].as<std::string>();
+    }
+
+    /* start a web server pointing to ram_dcim_path*/
+    
+    //use ifconfig to get eth0 ip address
+    
+
+    ram_dcim_url += getIpAddress("eth0");
+    ram_dcim_url += ":";
+    ram_dcim_url += std::to_string(DEFAULT_HTTP_PORT);
+    ram_dcim_url += "/";
+    ram_dcim_url += ram_dcim_path;
+    std::cout << "ram_dcim_url = " << ram_dcim_url << std::endl;
+    system(("mkdir -p " + ram_dcim_path).data());
+
 
     init_jpeg_feedback_gpio();
 

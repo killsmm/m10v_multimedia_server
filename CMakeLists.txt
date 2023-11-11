@@ -9,8 +9,9 @@ add_compile_options(-mfpu=neon-vfpv4)
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
 ######## Build and include settings ########
+#add include directories
 include_directories(
-	
+	${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 
@@ -47,15 +48,19 @@ message(${PROJECT_SOURCE_DIR})
 
 set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
-find_library (usage-env-lib NAMES libUsageEnvironment.a )
-find_library (group-lib NAMES libgroupsock.a )
-find_library (livemedia-lib libliveMedia.a )
-find_library (basic-lib NAMES libBasicUsageEnvironment.a )
+# find_library (usage-env-lib NAMES libUsageEnvironment.a )
+# find_library (group-lib NAMES libgroupsock.a )
+# find_library (livemedia-lib libliveMedia.a )
+# find_library (basic-lib NAMES libBasicUsageEnvironment.a )
 
-message(usage-env-lib=${usage-env-lib})
-message(group-lib=${group-lib})
-message(livemedia-lib=${livemedia-lib})
-message(basic-lib=${basic-lib})
+# message(usage-env-lib=${usage-env-lib})
+# message(group-lib=${group-lib})
+# message(livemedia-lib=${livemedia-lib})
+# message(basic-lib=${basic-lib})
+
+link_directories(
+	${CMAKE_CURRENT_SOURCE_DIR}/libs-arm
+)
 
 TARGET_LINK_LIBRARIES(
 	video_recorder
@@ -68,10 +73,12 @@ TARGET_LINK_LIBRARIES(
 	gstreamer-1.0
 	exif
 	json-c
-	${usage-env-lib}
-	${group-lib}
-	${livemedia-lib}
-	${basic-lib}
+	UsageEnvironment
+	groupsock
+	liveMedia
+	BasicUsageEnvironment
+	boost_program_options
+	boost_system
 )
 
 
