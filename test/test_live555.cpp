@@ -3,9 +3,6 @@
 #include "BasicUsageEnvironment.hh"
 
 
-TEST(TT,TT_TEST1_Test){
-    EXPECT_EQ(1,1);
-}
 
 TEST(Live555, startRTSP){
         // Initialize the basic usage environment

@@ -1,91 +1,100 @@
-cmake_minimum_required (VERSION 2.8.1)
+cmake_minimum_required(VERSION 2.8.1)
 
-######## Project settings ########
+# ####### Project settings ########
 PROJECT(video_recorder)
 
-add_compile_options(-mfpu=neon-vfpv4)
-# add_compile_options(-mfloat-abi=hard)
 
+
+# add_compile_options(-mfloat-abi=hard)
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
-######## Build and include settings ########
-#add include directories
+# ####### Build and include settings ########
+# add include directories
 include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/include
+	/usr/local/include/liveMedia
+	/usr/local/include/BasicUsageEnvironment
+	/usr/local/include/groupsock
+	/usr/local/include/UsageEnvironment
 )
-
 
 link_directories(
 	${LINK_DIRECTORIES}
 )
 
-
-
-file(GLOB SOURCES
+file(GLOB APP_SOURCES
 	"src/*.cpp"
 	"src/*.c"
 	"src/*.h"
 	"src/jpeg-lib/*"
+
 	# "src/sample_library.cpp"
 )
 
-add_executable(
-	video_recorder
-
-	${SOURCES}
+file(GLOB TEST_SOURCES
+	"test/*.cpp"
+	"test/*.c"
+	"test/*.h"
 )
 
+if(${CMAKE_CROSSCOMPILING})
+	message(STATUS "Cross-compiling for ${CMAKE_SYSTEM_PROCESSOR}")
+	add_compile_options(-mfpu=neon-vfpv4)
+	add_executable(
+		video_recorder
+		${APP_SOURCES}
+	)
 
-target_include_directories(
-	video_recorder
-	PUBLIC
-	src/jpeg-lib
-)
+	link_directories(
+		${CMAKE_CURRENT_SOURCE_DIR}/libs-arm
+	)
 
+	target_link_libraries(
+		video_recorder
+		avformat
+		avcodec
+		cmfwk
+		pthread
+		avutil
+		zmq
+		gstreamer-1.0
+		exif
+		json-c
+		UsageEnvironment
+		groupsock
+		liveMedia
+		BasicUsageEnvironment
+		boost_program_options
+		boost_system
+	)
 
-message(${CMAKE_CURRENT_SOURCE_DIR})
-message(${PROJECT_SOURCE_DIR})
+	# ####### Install targets ########
+	INSTALL(TARGETS video_recorder
+		RUNTIME DESTINATION bin
+	)
+else()
+	message(STATUS "Compiling for ${CMAKE_SYSTEM_PROCESSOR}")
+	find_package(GTest REQUIRED)
+	add_executable(runTests ${TEST_SOURCES})
 
-set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+	include_directories(${GTEST_INCLUDE_DIRS} /usr/local/ssl/include include)
 
-# find_library (usage-env-lib NAMES libUsageEnvironment.a )
-# find_library (group-lib NAMES libgroupsock.a )
-# find_library (livemedia-lib libliveMedia.a )
-# find_library (basic-lib NAMES libBasicUsageEnvironment.a )
+	target_link_directories(runTests PUBLIC /usr/local/ssl/lib64)
 
-# message(usage-env-lib=${usage-env-lib})
-# message(group-lib=${group-lib})
-# message(livemedia-lib=${livemedia-lib})
-# message(basic-lib=${basic-lib})
+	message(${GTEST_INCLUDE_DIRS})
+	message(${GTEST_LIBRARIES})
 
-link_directories(
-	${CMAKE_CURRENT_SOURCE_DIR}/libs-arm
-)
+	target_link_libraries(runTests ${GTEST_LIBRARIES}
+		pthread
+		liveMedia
+		groupsock
+		BasicUsageEnvironment
+		UsageEnvironment
+		ssl
+		crypto
+		boost_program_options
+		boost_system
+	)
+endif()
 
-TARGET_LINK_LIBRARIES(
-	video_recorder
-	avformat
-	avcodec
-	cmfwk
-	pthread
-	avutil
-	zmq
-	gstreamer-1.0
-	exif
-	json-c
-	UsageEnvironment
-	groupsock
-	liveMedia
-	BasicUsageEnvironment
-	boost_program_options
-	boost_system
-)
-
-
-
-#add_test(Mytest video_recorder )
-
-######## Install targets ########
-INSTALL(TARGETS video_recorder
-	RUNTIME DESTINATION bin
-)
+# add_test(Mytest video_recorder )
