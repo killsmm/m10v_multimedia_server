@@ -36,9 +36,11 @@ file(GLOB TEST_SOURCES
 	"test/*.c"
 	"test/*.h"
 )
+set (CROSS_COMPILE "$ENV{CROSS_COMPILE}")
 
-if(${CMAKE_CROSSCOMPILING})
-	message(STATUS "Cross-compiling for ${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "CROSS_COMPILE: ${CROSS_COMPILE}")
+
+if(${CROSS_COMPILE} STREQUAL "arm-poky-linux-gnueabi-")
 	add_compile_options(-mfpu=neon-vfpv4)
 	add_executable(
 		video_recorder
