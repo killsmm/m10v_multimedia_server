@@ -40,7 +40,7 @@ set (CROSS_COMPILE "$ENV{CROSS_COMPILE}")
 
 message(STATUS "CROSS_COMPILE: ${CROSS_COMPILE}")
 
-if(${CROSS_COMPILE} STREQUAL "arm-poky-linux-gnueabi-")
+if(DEFINED CROSS_COMPILE)
 	add_compile_options(-mfpu=neon-vfpv4)
 	add_executable(
 		video_recorder
