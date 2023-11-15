@@ -224,7 +224,7 @@ int main(int argc, char** argv){
     //use ifconfig to get eth0 ip address
     
 
-    ram_dcim_url += getIpAddress("eth0");
+    ram_dcim_url += getIpAddress("usb0");
     ram_dcim_url += ":";
     ram_dcim_url += std::to_string(DEFAULT_HTTP_PORT);
     ram_dcim_url += "/";
