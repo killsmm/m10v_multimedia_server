@@ -15,9 +15,7 @@ extern "C"{
 
 static timeb start_time;
 
-static int64_t get_timestamp(AVRational time_base){
-    timeb t;
-    ftime(&t);
+static int64_t get_timestamp(timeb t, AVRational time_base){
     int64_t time_stamp_ms = ((int64_t)t.time * 1000 + t.millitm) - ((int64_t)start_time.time * 1000 + start_time.millitm);
     return av_rescale_q(time_stamp_ms, (AVRational){1, 1000}, time_base);
 }
@@ -84,7 +82,9 @@ int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
     }
 
     this->packet.stream_index = this->f_ctx->streams[0]->index;
-    int64_t time_stamp = get_timestamp(this->f_ctx->streams[0]->time_base);
+    timeb time;
+    ftime(&time);
+    int64_t time_stamp = get_timestamp(time, this->f_ctx->streams[0]->time_base);
     this->packet.pts = time_stamp;
     this->packet.dts = time_stamp;
     //printf("addr = %08x size = %d \n", addr, size); 
@@ -100,7 +100,7 @@ int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
         SpaceDataReporter::writeCurrentSpaceDataToBuf(space_data);
         av_packet_from_data(&this->packet, space_data, sizeof(space_data));
         this->packet.stream_index = this->f_ctx->streams[1]->index;
-        int64_t time_stamp = get_timestamp(this->f_ctx->streams[1]->time_base);
+        int64_t time_stamp = get_timestamp(SeiEncoder::getFrameTime(), this->f_ctx->streams[1]->time_base);
         this->packet.pts = time_stamp;
         this->packet.dts = time_stamp;
         ret |= av_write_frame(this->f_ctx, &this->packet);

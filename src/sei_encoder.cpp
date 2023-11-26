@@ -11,6 +11,7 @@ volatile float *SeiEncoder::pitch = nullptr;
 volatile float *SeiEncoder::yaw = nullptr;
 uint8_t *SeiEncoder::encodedData = nullptr;
 uint8_t *SeiEncoder::addShellEncodedData = nullptr;
+volatile long SeiEncoder::time_stamp = 0;
 
 void SeiEncoder::init() {
     if (SeiEncoder::encodedData == nullptr){
@@ -32,6 +33,7 @@ void SeiEncoder::init() {
     memcpy(SeiEncoder::encodedData, sei_head, 23);
     memset(SeiEncoder::encodedData + 23, 0x00, SEI_BUF_LENGTH - 23);
     *(SeiEncoder::encodedData + 23 + 24) = 0x80;
+    SeiEncoder::time_stamp = 0;
     // setLocation(66.0, 66.0, 66.0);
     // setAngles(66.0, -66.0, 66.0);
 }
@@ -64,9 +66,17 @@ uint8_t *SeiEncoder::getEncodedSei(int *length) {
 }
 
 void SeiEncoder::setLocation(float latitude, float longitude, float altitude) {
-//    *SeiEncoder::latitude = latitude;
-//    *SeiEncoder::longitude = longitude;
-//    *SeiEncoder::altitude = altitude;
+    // validate the data is in correct range
+
+    if (latitude < -90.0 || latitude > 90.0 || abs(latitude) < 0.1f){
+        return;
+    }
+    if (longitude < -180.0 || longitude > 180.0 || abs(longitude) < 0.1f){
+        return;
+    }
+    if (altitude < -1000.0 || altitude > 10000.0 || abs(altitude) < 0.1f){
+        return;
+    }
     memcpy(SeiEncoder::encodedData + 23, &longitude, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 4, &latitude, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 8, &altitude, 4); 
@@ -74,9 +84,17 @@ void SeiEncoder::setLocation(float latitude, float longitude, float altitude) {
 }
 
 void SeiEncoder::setAngles(float roll, float pitch, float yaw) {
-    // *SeiEncoder::roll = roll;
-    // *SeiEncoder::pitch = pitch;
-    // *SeiEncoder::yaw = yaw;
+    // validate the data is in correct range
+    if (roll < -180.0 || roll > 180.0 || abs(roll) < 0.1f){
+        return;
+    }
+    if (pitch < -180.0 || pitch > 180.0 || abs(pitch) < 0.1f){
+        return;
+    }
+    if (yaw < -180.0 || yaw > 180.0 || abs(yaw) < 0.1f){
+        return;
+    }
+
     memcpy(SeiEncoder::encodedData + 23 + 12, &pitch, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 16, &yaw, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 20, &roll, 4); 
@@ -86,4 +104,12 @@ float SeiEncoder::getLatitude(){
     float tmp;
     memcpy(SeiEncoder::encodedData + 23, reinterpret_cast<uint8_t*>(&tmp), 4);
     return tmp;
+}
+
+timeb SeiEncoder::getFrameTime(){
+    timeb t;
+    ftime(&t);
+    //t.time is in seconds
+    t.time = SeiEncoder::time_stamp;
+    return t;
 }

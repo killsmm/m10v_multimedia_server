@@ -16,7 +16,6 @@
 #include "gpio_ctrl.h"
 #include "boost/program_options.hpp"
 #include "configs.h"
-#include "http_server.hpp"
 
 //#define RTSP_TEST
 extern "C" {
@@ -54,47 +53,11 @@ static Live555Server *live555_server = NULL;
 
 
 
-std::string getIpAddress(const char* interfaceName) {
-    struct addrinfo hints, *res;
-    int status;
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC; // Use AF_INET for IPv4 or AF_INET6 for IPv6
-    hints.ai_socktype = SOCK_STREAM;
-
-    if ((status = getaddrinfo(interfaceName, NULL, &hints, &res)) != 0) {
-        std::cerr << "getaddrinfo: " << gai_strerror(status) << std::endl;
-        return ""; // Return an empty string on error
-    }
-
-    for (struct addrinfo* p = res; p != nullptr; p = p->ai_next) {
-        void* addr;
-        if (p->ai_family == AF_INET) { // IPv4
-            struct sockaddr_in* ipv4 = (struct sockaddr_in*)p->ai_addr;
-            addr = &(ipv4->sin_addr);
-        } else { // IPv6
-            struct sockaddr_in6* ipv6 = (struct sockaddr_in6*)p->ai_addr;
-            addr = &(ipv6->sin6_addr);
-        }
-
-        char ipstr[INET6_ADDRSTRLEN];
-        // Convert the IP address to a string
-        inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
-        freeaddrinfo(res); // Free the addrinfo structure
-
-        return ipstr; // Return the IP address directly
-    }
-
-    return ""; // Return an empty string if IP address is not found
-}
-
-
-
 static void signal_handler(int signal) {
     app_abort = true;
 }
 
-static std::string getValueFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
+static std::string getStrFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
     json_object *tmp1;
     json_object *tmp2;
     if(!json_object_object_get_ex(json, level1.data(), &tmp1)){
@@ -124,7 +87,7 @@ static std::string getValueFromJson(json_object *json, std::string level1, std::
     return std::string(result, strlen(result));
 }
 
-static float getNumberFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
+static float getFloatFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
     json_object *tmp1;
     json_object *tmp2;
     if(!json_object_object_get_ex(json, level1.data(), &tmp1)){
@@ -161,19 +124,159 @@ static void savedCallback(std::string path, void* data){
 };
 
 
-
-static void startWebServer(std::string path) {
-    try {
-        boost::asio::io_service io_service;
-        HttpServer server(io_service, 8080, path);
-        io_service.run();
-    }
-    catch (std::exception& e) {
-        std::cerr << "Exception: " << e.what() << "\n";
-    }
-}
-
 namespace po = boost::program_options;
+
+static void handle_sub_msg(std::string msg){
+    json_tokener *tok = json_tokener_new();
+    json_object *json = json_tokener_parse_ex(tok, msg.data(), msg.size());
+    std::string cmd = getStrFromJson(json, "cmd", "", "");
+    if (cmd == ""){
+        std::cout << json_object_to_json_string(json) << std::endl;
+    }
+
+    if(cmd == "GPS"){
+        SeiEncoder::setLocation(std::stof(getStrFromJson(json, "data", "location", "latitude")),
+                                std::stof(getStrFromJson(json, "data", "location", "longitude")),
+                                std::stof(getStrFromJson(json, "data", "location", "altitude")));
+        SeiEncoder::setAngles(std::stof(getStrFromJson(json, "data", "angles", "roll")),
+                                std::stof(getStrFromJson(json, "data", "angles", "pitch")),
+                                std::stof(getStrFromJson(json, "data", "angles", "yaw")));
+        SeiEncoder::time_stamp = std::stol(getStrFromJson(json, "data", "time_stamp", ""));
+    }else if(cmd == "DeviceStatus"){
+        DeviceStatus::cmos_temperature = std::stof(getStrFromJson(json, "data", "cmos_temp", ""));
+        DeviceStatus::input_voltage = std::stof(getStrFromJson(json, "data", "total_voltage", ""));
+    }else if(cmd == "workStatus"){
+        DeviceStatus::shutter_mode = getFloatFromJson(json, "data", "shutter_mode", "");
+        std::cout << "shutter_mode = " << DeviceStatus::shutter_mode << std::endl;
+        std::string nr_str = getStrFromJson(json, "data", "noise_reduction_strength", "");
+        if(nr_str != ""){
+            DeviceStatus::noise_reduction_strength = std::stoi(nr_str);
+        }
+        std::string jq_str = getStrFromJson(json, "data", "photo_resolve", "");
+        if(jq_str != ""){
+            uint32_t jpeg_quality = std::stoi(jq_str);
+            if(jpeg_quality == 100){
+                DeviceStatus::jpeg_quality_level = 2;
+            }else if(jpeg_quality > 90 && jpeg_quality < 100){
+                DeviceStatus::jpeg_quality_level = 1;
+            }else{
+                DeviceStatus::jpeg_quality_level = 0;
+            }
+        }
+
+        std::string sc_str = getStrFromJson(json, "data", "shutter_count", "count1");
+        if(sc_str != ""){
+            DeviceStatus::shutter_count = std::stoi(sc_str);
+        }
+    }
+    json_object_put(json);
+    json_tokener_free(tok);
+}
+/**
+ * @brief 
+ * 
+ * @param cmd VideoStorage, PhotoStorage, VideoStart, VideoStop
+ * @return true 
+ * @return false 
+ */
+static bool handle_cmd(std::string cmd_string){
+    json_tokener *tok = json_tokener_new();
+    json_object *json = json_tokener_parse_ex(tok, cmd_string.data(), cmd_string.size());
+    std::string cmd = getStrFromJson(json, "cmd", "", "");
+    std::cout << "---cmd from request:" + cmd << std::endl;
+    if(cmd == "VideoStorage"){
+        if(media_recorder == NULL){
+            return false;
+        }
+        media_recorder->setPath(getStrFromJson(json, "data", "path", ""));
+        media_recorder->setPrefix(getStrFromJson(json, "data", "prefix", ""));
+    }else if(cmd == "PhotoStorage"){
+        if(jpeg_capture != NULL){
+            std::string p = getStrFromJson(json, "data", "path", "");
+            std::cout << "###set path " + p << std::endl;
+            std::string sub_str = "/run/SD/mmcblk0p1/DCIM";
+            size_t found = p.find(sub_str);
+            if(found != std::string::npos){
+                std::cout << "found parent path" << std::endl;
+                p.erase(found, found + sub_str.length());
+                std::cout << "#### final path = " + p << std::endl;
+            }
+            jpeg_capture->setSubPath(p);
+            jpeg_capture->setPrefix(getStrFromJson(json, "data", "prefix", ""));
+        }
+    }else if(cmd == "VideoStart"){
+        int width = 1920;
+        int height = 1080;
+        int stream_id = 0;
+        AVCodecID codec_id = AV_CODEC_ID_H264;
+        std::string resolution = getStrFromJson(json, "data", "resolve", "");
+        std::cout << "resolution " << resolution << std::endl;
+        if(resolution != ""){
+            std::regex re("(\\d+)x(\\d+)");
+            std::smatch match;
+            std::regex_match(resolution, match, re);
+            if(match.size() == 3){
+                width =  std::stoi(match.str(1));
+                height = std::stoi(match.str(2)); 
+            }
+        }
+        std::string stream_type = getStrFromJson(json, "data", "format", "");
+        std::cout << "stream_type " << stream_type << std::endl;
+        if(stream_type == "H264_0"){
+            stream_id = 0;
+            codec_id = AV_CODEC_ID_H264;
+        }else if(stream_type == "H264_1"){
+            stream_id = 1;
+            codec_id = AV_CODEC_ID_H264;
+        }else if(stream_type == "H264_2"){
+            stream_id = 2;
+            codec_id = AV_CODEC_ID_H264;
+        }else if(stream_type == "H265"){
+            stream_id = 8;
+            codec_id = AV_CODEC_ID_H265;
+        }else{
+            stream_id = 0;
+            codec_id = AV_CODEC_ID_H264;
+        }
+
+        int frame_rate = 25;
+        std::string fps = getStrFromJson(json, "data", "fps", "");
+        if (fps != ""){
+            frame_rate = std::stoi(fps);
+        }
+        
+
+        std::cout << "width, height = " << width << "," << height << std::endl;
+        std::cout << "codec_id = " << codec_id << " stream_id == " << stream_id << std::endl;
+        std::cout << "frame_rate = " << frame_rate << std::endl;
+
+        if(media_recorder->getRecordStatus() == RECORD_STATUS_RECORDING){
+            std::cout << "error: is already recording" << std::endl;
+            json_object_put(json);
+            json_tokener_free(tok);
+            return false;
+        }
+        media_recorder->start_record(codec_id, width, height, frame_rate, ".avi");
+        stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, stream_id, media_recorder);
+    }else if(cmd == "VideoStop"){
+        if(media_recorder->getRecordStatus() != RECORD_STATUS_RECORDING){
+            std::cout << "error: is not recording" << std::endl;
+            json_object_put(json);
+            json_tokener_free(tok);
+            return false;
+        }
+        media_recorder->stop_record();
+        communicator->broadcast("record:", "over");
+        stream_receiver->removeConsumer(media_recorder);
+    }else{
+        json_object_put(json);
+        json_tokener_free(tok);
+        return false;
+    }
+    json_object_put(json);
+    json_tokener_free(tok);
+    return true;
+}
 
 int main(int argc, char** argv){
     int flag = 0;
@@ -185,7 +288,7 @@ int main(int argc, char** argv){
         ("video,v", po::value<std::string>(), "set video path")
         ("mjpeg,m", "enable MJPEG mode")
         ("jpeg,j", po::value<std::string>(), "set JPEG path")
-        ("ram_dcim_path,b", po::value<std::string>(), "set RAM DCIM URL")
+        ("ram_dcim_url,b", po::value<std::string>(), "set RAM DCIM URL")
         ("rtsp,s", po::value<std::string>(), "set RTSP channel name");
 
     po::variables_map vm;
@@ -210,28 +313,14 @@ int main(int argc, char** argv){
         jpeg_path = vm["jpeg"].as<std::string>();
     }
 
-    if (vm.count("ram_dcim_path")) {
-        ram_dcim_path = vm["ram_dcim_path"].as<std::string>();
+    if (vm.count("ram_dcim_url")) {
+        ram_dcim_url = vm["ram_dcim_url"].as<std::string>();
     }
 
     if (vm.count("rtsp")) {
         flag |= FLAG_RTSP;
         rtsp_channel_name = vm["rtsp"].as<std::string>();
     }
-
-    /* start a web server pointing to ram_dcim_path*/
-    
-    //use ifconfig to get eth0 ip address
-    
-
-    ram_dcim_url += getIpAddress("usb0");
-    ram_dcim_url += ":";
-    ram_dcim_url += std::to_string(DEFAULT_HTTP_PORT);
-    ram_dcim_url += "/";
-    ram_dcim_url += ram_dcim_path;
-    std::cout << "ram_dcim_url = " << ram_dcim_url << std::endl;
-    system(("mkdir -p " + ram_dcim_path).data());
-
 
     init_jpeg_feedback_gpio();
 
@@ -276,19 +365,8 @@ int main(int argc, char** argv){
     }
 
     if (flag & FLAG_RTSP) {
-#ifdef RTSP_TEST
-        system("camera_if_direct 0x1 0x2 0x22\n");
-        system("camera_if_direct 0x1 0xc 0xb\n");
-        system("camera_if_direct 0x1 0xe 0xb\n");
-        system("camera_if_direct 0x1 0xf 0xb\n");
-        system("camera_if_direct 0x1 0x41 0xFF01FFFF");
-        system("camera_if_direct 0x8 0x3 0x1\n");
-        system("camera_if_direct 0x0 0xb 0x2\n");
-        system("camera_if_direct 0x0 0xb 0x8\n");
-#endif
         live555_server = new Live555Server(std::string(rtsp_channel_name));
         stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, 0, live555_server);
-        // live555_server->start();
     }
     
     if (flag & FLAG_VIDEO) {
@@ -308,157 +386,9 @@ int main(int argc, char** argv){
     {
         // SeiEncoder::setLocation(rand() % 90, rand() % 90, rand() % 3000); // for test only
         if(communicator->receiveSub(received_msg)){
-            json_tokener *tok = json_tokener_new();
-            json_object *json = json_tokener_parse_ex(tok, received_msg.data(), received_msg.size());
-            std::string cmd = getValueFromJson(json, "cmd", "", "");
-            if (cmd == ""){
-                std::cout << json_object_to_json_string(json) << std::endl;
-            }
-
-            if(cmd == "GPS"){
-#if 0
-                float latitude = std::stof(getValueFromJson(json, "data", "location", "latitude"));
-                float longitude = std::stof(getValueFromJson(json, "data", "location", "longitude"));
-                float altitude = std::stof(getValueFromJson(json, "data", "location", "altitude"));
-                float roll = std::stof(getValueFromJson(json, "data", "angles", "roll"));
-                float pitch = std::stof(getValueFromJson(json, "data", "angles", "pitch"));
-                float yaw = std::stof(getValueFromJson(json, "data", "angles", "yaw"));
-                printf("GPS: (%f,%f,%f), (%f,%f,%f)\n", latitude, longitude, altitude, roll, pitch, yaw);
-#endif
-                SeiEncoder::setLocation(std::stof(getValueFromJson(json, "data", "location", "latitude")),
-                                        std::stof(getValueFromJson(json, "data", "location", "longitude")),
-                                        std::stof(getValueFromJson(json, "data", "location", "altitude")));
-                SeiEncoder::setAngles(std::stof(getValueFromJson(json, "data", "angles", "roll")),
-                                      std::stof(getValueFromJson(json, "data", "angles", "pitch")),
-                                      std::stof(getValueFromJson(json, "data", "angles", "yaw"))); 
-            }else if(cmd == "DeviceStatus"){
-                DeviceStatus::cmos_temperature = std::stof(getValueFromJson(json, "data", "cmos_temp", ""));
-                DeviceStatus::input_voltage = std::stof(getValueFromJson(json, "data", "total_voltage", ""));
-            }else if(cmd == "workStatus"){
-                DeviceStatus::shutter_mode = getNumberFromJson(json, "data", "shutter_mode", "");
-                std::cout << "shutter_mode = " << DeviceStatus::shutter_mode << std::endl;
-                std::string nr_str = getValueFromJson(json, "data", "noise_reduction_strength", "");
-                if(nr_str != ""){
-                    DeviceStatus::noise_reduction_strength = std::stoi(nr_str);
-                }
-                std::string jq_str = getValueFromJson(json, "data", "photo_resolve", "");
-                if(jq_str != ""){
-                    uint32_t jpeg_quality = std::stoi(jq_str);
-                    if(jpeg_quality == 100){
-                        DeviceStatus::jpeg_quality_level = 2;
-                    }else if(jpeg_quality > 90 && jpeg_quality < 100){
-                        DeviceStatus::jpeg_quality_level = 1;
-                    }else{
-                        DeviceStatus::jpeg_quality_level = 0;
-                    }
-                }
-
-                std::string sc_str = getValueFromJson(json, "data", "shutter_count", "count1");
-                if(sc_str != ""){
-                    DeviceStatus::shutter_count = std::stoi(sc_str);
-                }
-            }
-            json_object_put(json);
-            json_tokener_free(tok);
+            handle_sub_msg(received_msg);
         }
-
-        communicator->receiveCmd([](std::string s) -> bool{
-            json_tokener *tok = json_tokener_new();
-            json_object *json = json_tokener_parse_ex(tok, s.data(), s.size());
-            std::string cmd = getValueFromJson(json, "cmd", "", "");
-            std::cout << "---cmd from request:" + cmd << std::endl;
-            if(cmd == "VideoStorage"){
-                media_recorder->setPath(getValueFromJson(json, "data", "path", ""));
-                media_recorder->setPrefix(getValueFromJson(json, "data", "prefix", ""));
-            }else if(cmd == "PhotoStorage"){
-                if(jpeg_capture != NULL){
-                    std::string p = getValueFromJson(json, "data", "path", "");
-                    std::cout << "###set path " + p << std::endl;
-                    std::string sub_str = "/run/SD/mmcblk0p1/DCIM";
-                    size_t found = p.find(sub_str);
-                    if(found != std::string::npos){
-                        std::cout << "found parent path" << std::endl;
-                        p.erase(found, found + sub_str.length());
-                        std::cout << "#### final path = " + p << std::endl;
-                    }
-                    jpeg_capture->setSubPath(p);
-                    jpeg_capture->setPrefix(getValueFromJson(json, "data", "prefix", ""));
-                }
-            }else if(cmd == "VideoStart"){
-                int width = 1920;
-                int height = 1080;
-                int stream_id = 0;
-                AVCodecID codec_id = AV_CODEC_ID_H264;
-                std::string resolution = getValueFromJson(json, "data", "resolve", "");
-                std::cout << "resolution " << resolution << std::endl;
-                if(resolution != ""){
-                    std::regex re("(\\d+)x(\\d+)");
-                    std::smatch match;
-                    std::regex_match(resolution, match, re);
-                    if(match.size() == 3){
-                        width =  std::stoi(match.str(1));
-                        height = std::stoi(match.str(2)); 
-                    }
-                }
-                std::string stream_type = getValueFromJson(json, "data", "format", "");
-                std::cout << "stream_type " << stream_type << std::endl;
-                if(stream_type == "H264_0"){
-                    stream_id = 0;
-                    codec_id = AV_CODEC_ID_H264;
-                }else if(stream_type == "H264_1"){
-                    stream_id = 1;
-                    codec_id = AV_CODEC_ID_H264;
-                }else if(stream_type == "H264_2"){
-                    stream_id = 2;
-                    codec_id = AV_CODEC_ID_H264;
-                }else if(stream_type == "H265"){
-                    stream_id = 8;
-                    codec_id = AV_CODEC_ID_H265;
-                }else{
-                    stream_id = 0;
-                    codec_id = AV_CODEC_ID_H264;
-                }
-
-                int frame_rate = 25;
-                std::string fps = getValueFromJson(json, "data", "fps", "");
-                if (fps != ""){
-                    frame_rate = std::stoi(fps);
-                }
-                
-
-                std::cout << "width, height = " << width << "," << height << std::endl;
-                std::cout << "codec_id = " << codec_id << " stream_id == " << stream_id << std::endl;
-                std::cout << "frame_rate = " << frame_rate << std::endl;
-
-                if(media_recorder->getRecordStatus() == RECORD_STATUS_RECORDING){
-                    std::cout << "error: is already recording" << std::endl;
-                    json_object_put(json);
-                    json_tokener_free(tok);
-                    return false;
-                }
-                media_recorder->start_record(codec_id, width, height, frame_rate, ".avi");
-                stream_receiver->addConsumer(E_CPU_IF_COMMAND_STREAM_VIDEO, stream_id, media_recorder);
-            }else if(cmd == "VideoStop"){
-                if(media_recorder->getRecordStatus() != RECORD_STATUS_RECORDING){
-                    std::cout << "error: is not recording" << std::endl;
-                    json_object_put(json);
-                    json_tokener_free(tok);
-                    return false;
-                }
-                media_recorder->stop_record();
-                communicator->broadcast("record:", "over");
-                stream_receiver->removeConsumer(media_recorder);
-            }else{
-                json_object_put(json);
-                json_tokener_free(tok);
-                return false;
-            }
-            json_object_put(json);
-            json_tokener_free(tok);
-            return true;
-        });
-
-        //sleep(1);
+        communicator->receiveCmd(handle_cmd);
     }
 
 
