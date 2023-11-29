@@ -1,3 +1,15 @@
+/**
+ * @file rtsp_streamer.cpp
+ * @deprecated
+ * @author your name (you@domain.com)
+ * @brief 
+ * @version 0.1
+ * @date 2023-11-29
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include "rtsp_streamer.h"
 #include <iostream>
 #include <signal.h>

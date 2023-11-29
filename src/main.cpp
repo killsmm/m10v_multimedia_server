@@ -48,7 +48,6 @@ static JpegCapture *jpeg_capture = NULL;
 static MediaRecorder *media_recorder = NULL;
 static Communicator *communicator = NULL;
 static StreamReceiver *stream_receiver = NULL;
-static RtspStreamer *rtsp_streamer = NULL;
 static Live555Server *live555_server = NULL;
 
 
@@ -126,6 +125,37 @@ static void savedCallback(std::string path, void* data){
 
 namespace po = boost::program_options;
 
+static int string_to_float(char* str, float *result){
+    char *tmp;
+    *result = std::strtof(str, &tmp);
+    if(tmp == str){
+        return -1;
+    }
+    return 0;
+}
+
+static int validate_gps(float latitude, float longitude, float altitude, float roll, float pitch, float yaw){
+    if (latitude < -90.0 || latitude > 90.0 || abs(latitude) < 0.1f){
+        return -1;
+    }
+    if (longitude < -180.0 || longitude > 180.0 || abs(longitude) < 0.1f){
+        return -1;
+    }
+    if (altitude < -1000.0 || altitude > 10000.0 || abs(altitude) < 0.1f){
+        return -1;
+    }
+    if (roll < -180.0 || roll > 180.0 || abs(roll) < 0.1f){
+        return -1;
+    }
+    if (pitch < -180.0 || pitch > 180.0 || abs(pitch) < 0.1f){
+        return -1;
+    }
+    if (yaw < -180.0 || yaw > 180.0 || abs(yaw) < 0.1f){
+        return -1;
+    }
+    return 0;
+}
+
 static void handle_sub_msg(std::string msg){
     json_tokener *tok = json_tokener_new();
     json_object *json = json_tokener_parse_ex(tok, msg.data(), msg.size());
@@ -135,12 +165,44 @@ static void handle_sub_msg(std::string msg){
     }
 
     if(cmd == "GPS"){
-        SeiEncoder::setLocation(std::stof(getStrFromJson(json, "data", "location", "latitude")),
-                                std::stof(getStrFromJson(json, "data", "location", "longitude")),
-                                std::stof(getStrFromJson(json, "data", "location", "altitude")));
-        SeiEncoder::setAngles(std::stof(getStrFromJson(json, "data", "angles", "roll")),
-                                std::stof(getStrFromJson(json, "data", "angles", "pitch")),
-                                std::stof(getStrFromJson(json, "data", "angles", "yaw")));
+        char **tmp;
+        float latitude = 0;
+        float longitude = 0;
+        float altitude = 0;
+        float roll = 0;
+        float pitch = 0;
+        float yaw = 0;
+        
+        if(string_to_float(getStrFromJson(json, "data", "location", "latitude").data(), &latitude) != 0){
+            return;
+        }
+        if(string_to_float(getStrFromJson(json, "data", "location", "longitude").data(), &longitude) != 0){
+            return;
+        }
+        if(string_to_float(getStrFromJson(json, "data", "location", "altitude").data(), &altitude) != 0){
+            return;
+        }
+        if(string_to_float(getStrFromJson(json, "data", "angles", "roll").data(), &roll) != 0){
+            return;
+        }
+        if(string_to_float(getStrFromJson(json, "data", "angles", "pitch").data(), &pitch) != 0){
+            return;
+        }
+        if(string_to_float(getStrFromJson(json, "data", "angles", "yaw").data(), &yaw) != 0){
+            return;
+        }
+        if (latitude < -90.0 || latitude > 90.0 || abs(latitude) < 0.1f){
+            return;
+        }
+        if (longitude < -180.0 || longitude > 180.0 || abs(longitude) < 0.1f){
+            return;
+        }
+
+        if(validate_gps(latitude, longitude, altitude, roll, pitch, yaw) != 0){
+            return;
+        }
+        SeiEncoder::setLocation(latitude, longitude, altitude);
+        SeiEncoder::setAngles(roll, pitch, yaw);
         SeiEncoder::time_stamp = std::stol(getStrFromJson(json, "data", "time_stamp", ""));
     }else if(cmd == "DeviceStatus"){
         DeviceStatus::cmos_temperature = std::stof(getStrFromJson(json, "data", "cmos_temp", ""));
