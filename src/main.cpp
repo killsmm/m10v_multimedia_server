@@ -125,7 +125,7 @@ static void savedCallback(std::string path, void* data){
 
 namespace po = boost::program_options;
 
-static int string_to_float(char* str, float *result){
+static int string_to_float(const char* str, float *result){
     char *tmp;
     *result = std::strtof(str, &tmp);
     if(tmp == str){
