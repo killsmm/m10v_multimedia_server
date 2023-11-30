@@ -135,22 +135,22 @@ static int string_to_float(const char* str, float *result){
 }
 
 static int validate_gps(float latitude, float longitude, float altitude, float roll, float pitch, float yaw){
-    if (latitude < -90.0 || latitude > 90.0 || abs(latitude) < 0.001f){
+    if (latitude < -90.0 || latitude > 90.0 || (abs(latitude) < 0.0001f && latitude != 0.0f)){
         return -1;
     }
-    if (longitude < -180.0 || longitude > 180.0 || abs(longitude) < 0.001f){
+    if (longitude < -180.0 || longitude > 180.0 || (abs(longitude) < 0.0001f && longitude != 0.0f)){
         return -1;
     }
-    if (altitude < -1000.0 || altitude > 10000.0 || abs(altitude) < 0.001f){
+    if (altitude < -1000.0 || altitude > 10000.0 || (abs(altitude) < 0.0001f && altitude != 0.0f)){
         return -1;
     }
-    if (roll < -180.0 || roll > 180.0 || abs(roll) < 0.001f){
+    if (roll < -180.0 || roll > 180.0 || (abs(roll) < 0.0001f && roll != 0.0f)){
         return -1;
     }
-    if (pitch < -180.0 || pitch > 180.0 || abs(pitch) < 0.001f){
+    if (pitch < -180.0 || pitch > 180.0 || (abs(pitch) < 0.0001f && pitch != 0.0f)){
         return -1;
     }
-    if (yaw < -180.0 || yaw > 180.0 || abs(yaw) < 0.001f){
+    if (yaw < -180.0 || yaw > 180.0 || (abs(yaw) < 0.0001f && yaw != 0.0f)){
         return -1;
     }
     return 0;
