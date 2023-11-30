@@ -66,17 +66,6 @@ uint8_t *SeiEncoder::getEncodedSei(int *length) {
 }
 
 void SeiEncoder::setLocation(float latitude, float longitude, float altitude) {
-    // validate the data is in correct range
-
-    if (latitude < -90.0 || latitude > 90.0 || abs(latitude) < 0.1f){
-        return;
-    }
-    if (longitude < -180.0 || longitude > 180.0 || abs(longitude) < 0.1f){
-        return;
-    }
-    if (altitude < -1000.0 || altitude > 10000.0 || abs(altitude) < 0.1f){
-        return;
-    }
     memcpy(SeiEncoder::encodedData + 23, &longitude, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 4, &latitude, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 8, &altitude, 4); 
@@ -84,17 +73,6 @@ void SeiEncoder::setLocation(float latitude, float longitude, float altitude) {
 }
 
 void SeiEncoder::setAngles(float roll, float pitch, float yaw) {
-    // validate the data is in correct range
-    if (roll < -180.0 || roll > 180.0 || abs(roll) < 0.1f){
-        return;
-    }
-    if (pitch < -180.0 || pitch > 180.0 || abs(pitch) < 0.1f){
-        return;
-    }
-    if (yaw < -180.0 || yaw > 180.0 || abs(yaw) < 0.1f){
-        return;
-    }
-
     memcpy(SeiEncoder::encodedData + 23 + 12, &pitch, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 16, &yaw, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 20, &roll, 4); 

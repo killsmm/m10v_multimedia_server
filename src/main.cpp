@@ -135,22 +135,22 @@ static int string_to_float(const char* str, float *result){
 }
 
 static int validate_gps(float latitude, float longitude, float altitude, float roll, float pitch, float yaw){
-    if (latitude < -90.0 || latitude > 90.0 || abs(latitude) < 0.1f){
+    if (latitude < -90.0 || latitude > 90.0 || abs(latitude) < 0.001f){
         return -1;
     }
-    if (longitude < -180.0 || longitude > 180.0 || abs(longitude) < 0.1f){
+    if (longitude < -180.0 || longitude > 180.0 || abs(longitude) < 0.001f){
         return -1;
     }
-    if (altitude < -1000.0 || altitude > 10000.0 || abs(altitude) < 0.1f){
+    if (altitude < -1000.0 || altitude > 10000.0 || abs(altitude) < 0.001f){
         return -1;
     }
-    if (roll < -180.0 || roll > 180.0 || abs(roll) < 0.1f){
+    if (roll < -180.0 || roll > 180.0 || abs(roll) < 0.001f){
         return -1;
     }
-    if (pitch < -180.0 || pitch > 180.0 || abs(pitch) < 0.1f){
+    if (pitch < -180.0 || pitch > 180.0 || abs(pitch) < 0.001f){
         return -1;
     }
-    if (yaw < -180.0 || yaw > 180.0 || abs(yaw) < 0.1f){
+    if (yaw < -180.0 || yaw > 180.0 || abs(yaw) < 0.001f){
         return -1;
     }
     return 0;
@@ -165,7 +165,6 @@ static void handle_sub_msg(std::string msg){
     }
 
     if(cmd == "GPS"){
-        char **tmp;
         float latitude = 0;
         float longitude = 0;
         float altitude = 0;
@@ -173,28 +172,22 @@ static void handle_sub_msg(std::string msg){
         float pitch = 0;
         float yaw = 0;
         
-        if(string_to_float(getStrFromJson(json, "data", "location", "latitude").data(), &latitude) != 0){
+        if(string_to_float(getStrFromJson(json, "data", "location", "latitude").data(), &latitude)){
             return;
         }
-        if(string_to_float(getStrFromJson(json, "data", "location", "longitude").data(), &longitude) != 0){
+        if(string_to_float(getStrFromJson(json, "data", "location", "longitude").data(), &longitude)){
             return;
         }
-        if(string_to_float(getStrFromJson(json, "data", "location", "altitude").data(), &altitude) != 0){
+        if(string_to_float(getStrFromJson(json, "data", "location", "altitude").data(), &altitude)){
             return;
         }
-        if(string_to_float(getStrFromJson(json, "data", "angles", "roll").data(), &roll) != 0){
+        if(string_to_float(getStrFromJson(json, "data", "angles", "roll").data(), &roll)){
             return;
         }
-        if(string_to_float(getStrFromJson(json, "data", "angles", "pitch").data(), &pitch) != 0){
+        if(string_to_float(getStrFromJson(json, "data", "angles", "pitch").data(), &pitch)){
             return;
         }
-        if(string_to_float(getStrFromJson(json, "data", "angles", "yaw").data(), &yaw) != 0){
-            return;
-        }
-        if (latitude < -90.0 || latitude > 90.0 || abs(latitude) < 0.1f){
-            return;
-        }
-        if (longitude < -180.0 || longitude > 180.0 || abs(longitude) < 0.1f){
+        if(string_to_float(getStrFromJson(json, "data", "angles", "yaw").data(), &yaw)){
             return;
         }
 
