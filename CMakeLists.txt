@@ -12,26 +12,12 @@ add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 # add include directories
 include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/include
-	/usr/local/include/liveMedia
-	/usr/local/include/BasicUsageEnvironment
-	/usr/local/include/groupsock
-	/usr/local/include/UsageEnvironment
 )
 
 link_directories(
 	${LINK_DIRECTORIES}
-	${CMAKE_CURRENT_SOURCE_DIR}/libs-arm
+	# ${CMAKE_CURRENT_SOURCE_DIR}/libs-arm
 )
-
-find_library(liveMedia-lib NAMES liveMedia HINTS ${CMAKE_CURRENT_SOURCE_DIR}/libs-arm)
-find_library(BasicUsageEnvironment-lib NAMES BasicUsageEnvironment HINTS ${CMAKE_CURRENT_SOURCE_DIR}/libs-arm)
-find_library(groupsock-lib NAMES groupsock HINTS ${CMAKE_CURRENT_SOURCE_DIR}/libs-arm)
-find_library(UsageEnvironment-lib NAMES UsageEnvironment HINTS ${CMAKE_CURRENT_SOURCE_DIR}/libs-arm)
-
-message(${liveMedia-lib})
-message(${BasicUsageEnvironment-lib})
-message(${groupsock-lib})
-message(${UsageEnvironment-lib})
 
 file(GLOB APP_SOURCES
 	"src/*.cpp"
@@ -72,13 +58,13 @@ target_link_libraries(
 	gstreamer-1.0
 	exif
 	json-c
-
 	boost_program_options
 	boost_system
-	${UsageEnvironment-lib}
-	${groupsock-lib}
-	${liveMedia-lib}
-	${BasicUsageEnvironment-lib}
+	liveMedia
+	groupsock
+	UsageEnvironment
+	BasicUsageEnvironment
+
 )
 
 # ####### Install targets ########
