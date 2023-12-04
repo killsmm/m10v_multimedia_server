@@ -8,7 +8,7 @@
 
 class SeiEncoder{
 public:
-    static uint8_t *getEncodedSei(int *length);
+    static void getEncodedSei(int *length, uint8_t *data);
     static void init();
     static void deinit();
     static void setLocation(float latitude, float longitude, float altitude);

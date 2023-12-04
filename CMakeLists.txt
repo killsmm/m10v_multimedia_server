@@ -20,7 +20,18 @@ include_directories(
 
 link_directories(
 	${LINK_DIRECTORIES}
+	${CMAKE_CURRENT_SOURCE_DIR}/libs-arm
 )
+
+find_library(liveMedia-lib NAMES liveMedia HINTS ${CMAKE_CURRENT_SOURCE_DIR}/libs-arm)
+find_library(BasicUsageEnvironment-lib NAMES BasicUsageEnvironment HINTS ${CMAKE_CURRENT_SOURCE_DIR}/libs-arm)
+find_library(groupsock-lib NAMES groupsock HINTS ${CMAKE_CURRENT_SOURCE_DIR}/libs-arm)
+find_library(UsageEnvironment-lib NAMES UsageEnvironment HINTS ${CMAKE_CURRENT_SOURCE_DIR}/libs-arm)
+
+message(${liveMedia-lib})
+message(${BasicUsageEnvironment-lib})
+message(${groupsock-lib})
+message(${UsageEnvironment-lib})
 
 file(GLOB APP_SOURCES
 	"src/*.cpp"
@@ -40,63 +51,40 @@ set (CROSS_COMPILE "$ENV{CROSS_COMPILE}")
 
 message(STATUS "CROSS_COMPILE: ${CROSS_COMPILE}")
 
-if(DEFINED CROSS_COMPILE)
-	add_compile_options(-mfpu=neon-vfpv4)
-	add_executable(
-		video_recorder
-		${APP_SOURCES}
-	)
+add_compile_options(-mfpu=neon-vfpv4)
+add_executable(
+	video_recorder
+	${APP_SOURCES}
+)
 
-	link_directories(
-		${CMAKE_CURRENT_SOURCE_DIR}/libs-arm
-	)
+link_directories(
+	${CMAKE_CURRENT_SOURCE_DIR}/libs-arm
+)
 
-	target_link_libraries(
-		video_recorder
-		avformat
-		avcodec
-		cmfwk
-		pthread
-		avutil
-		zmq
-		gstreamer-1.0
-		exif
-		json-c
-		UsageEnvironment
-		groupsock
-		liveMedia
-		BasicUsageEnvironment
-		boost_program_options
-		boost_system
-	)
+target_link_libraries(
+	video_recorder
+	avformat
+	avcodec
+	cmfwk
+	pthread
+	avutil
+	zmq
+	gstreamer-1.0
+	exif
+	json-c
 
-	# ####### Install targets ########
-	INSTALL(TARGETS video_recorder
-		RUNTIME DESTINATION bin
-	)
-else()
-	message(STATUS "Compiling for ${CMAKE_SYSTEM_PROCESSOR}")
-	find_package(GTest REQUIRED)
-	add_executable(runTests ${TEST_SOURCES})
+	boost_program_options
+	boost_system
+	${UsageEnvironment-lib}
+	${groupsock-lib}
+	${liveMedia-lib}
+	${BasicUsageEnvironment-lib}
+)
 
-	include_directories(${GTEST_INCLUDE_DIRS} /usr/local/ssl/include include)
+# ####### Install targets ########
+INSTALL(TARGETS video_recorder
+	RUNTIME DESTINATION bin
+)
 
-	target_link_directories(runTests PUBLIC /usr/local/ssl/lib64)
-
-	message(${GTEST_INCLUDE_DIRS})
-	message(${GTEST_LIBRARIES})
-
-	target_link_libraries(runTests ${GTEST_LIBRARIES}
-		pthread
-		liveMedia
-		groupsock
-		BasicUsageEnvironment
-		UsageEnvironment
-		ssl
-		crypto
-		boost_program_options
-		boost_system
-	)
-endif()
 
 # add_test(Mytest video_recorder )

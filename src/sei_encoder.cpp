@@ -2,6 +2,7 @@
 #include <cstring>
 #include <vector>
 #include <iostream>
+#include <pthread.h>
 
 volatile float *SeiEncoder::longitude = nullptr;
 volatile float *SeiEncoder::latitude = nullptr;
@@ -13,7 +14,14 @@ uint8_t *SeiEncoder::encodedData = nullptr;
 uint8_t *SeiEncoder::addShellEncodedData = nullptr;
 volatile long SeiEncoder::time_stamp = 0;
 
+
+#include <pthread.h>
+
+static pthread_mutex_t mutex;
+
+
 void SeiEncoder::init() {
+    pthread_mutex_init(&mutex, NULL);
     if (SeiEncoder::encodedData == nullptr){
         SeiEncoder::encodedData = new uint8_t[SEI_BUF_LENGTH];
     }
@@ -42,7 +50,8 @@ void SeiEncoder::deinit(){
     delete SeiEncoder::encodedData;
 }
 
-uint8_t *SeiEncoder::getEncodedSei(int *length) {
+void SeiEncoder::getEncodedSei(int *length, uint8_t *data) {
+    pthread_mutex_lock(&mutex);
     int zero_counter = 0;
     std::vector<uint8_t> a;
     for(int i = 23; i < (23 + 24); i++){
@@ -58,24 +67,28 @@ uint8_t *SeiEncoder::getEncodedSei(int *length) {
         }
         
     }
-    const uint8_t *tmp = SeiEncoder::encodedData;
     memcpy(SeiEncoder::addShellEncodedData, SeiEncoder::encodedData, 23);
     memcpy(SeiEncoder::addShellEncodedData + 23, a.data(), a.size());
     *length = a.size() + 23;
-    return SeiEncoder::addShellEncodedData;
+    memcpy(data, SeiEncoder::addShellEncodedData, *length);
+    pthread_mutex_unlock(&mutex);
 }
 
 void SeiEncoder::setLocation(float latitude, float longitude, float altitude) {
+    //add a pthread mutex here
+    pthread_mutex_lock(&mutex);
     memcpy(SeiEncoder::encodedData + 23, &longitude, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 4, &latitude, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 8, &altitude, 4); 
-    
+    pthread_mutex_unlock(&mutex);
 }
 
 void SeiEncoder::setAngles(float roll, float pitch, float yaw) {
+    pthread_mutex_lock(&mutex);
     memcpy(SeiEncoder::encodedData + 23 + 12, &pitch, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 16, &yaw, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 20, &roll, 4); 
+    pthread_mutex_unlock(&mutex);
 }
 
 float SeiEncoder::getLatitude(){

@@ -65,7 +65,9 @@ static AVStream* createVideoStream(AVFormatContext *context, AVCodecID codec_id,
 
 int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
     int sei_length = 0;
-    uint8_t *sei_data = SeiEncoder::getEncodedSei(&sei_length);
+    uint8_t sei_data[128];
+    SeiEncoder::getEncodedSei(&sei_length, sei_data);
+
     if(sei_length == 0 || sei_data == nullptr){
         std::cout << "sei encoder not init" << std::endl;
     }
