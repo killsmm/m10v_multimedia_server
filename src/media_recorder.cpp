@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include "space_data_reporter.h"
 #include "sei_encoder.h"
+#include "gps_estone.h"
 
 extern "C"{
 // #include "libavformat/avformat.h"
@@ -24,7 +25,7 @@ MediaRecorder::MediaRecorder(std::string path){
     pthread_spin_init(&spinLock, PTHREAD_PROCESS_PRIVATE);
     this->record_path = path;
     this->prefix = "video";
-    this->avi_has_gps_stream = false;
+    // this->avi_has_gps_stream = false;
     this->recordStatus = RECORD_STATUS_READY;
     av_register_all();
 }
@@ -66,7 +67,9 @@ static AVStream* createVideoStream(AVFormatContext *context, AVCodecID codec_id,
 int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
     int sei_length = 0;
     uint8_t sei_data[128];
-    SeiEncoder::getEncodedSei(&sei_length, sei_data);
+    gps_data_t gps_data;
+    GPSEstone::getInstance()->getGPSData(&gps_data);
+    SeiEncoder::encode(gps_data, sei_data, &sei_length);
 
     if(sei_length == 0 || sei_data == nullptr){
         std::cout << "sei encoder not init" << std::endl;
@@ -97,19 +100,19 @@ int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
         std::cout << "write frame failed\n" << std::endl;
     }
 
-    if (this->avi_has_gps_stream){
-        uint8_t space_data[SpaceDataReporter::SPACE_DATA_SIZE]; 
-        SpaceDataReporter::writeCurrentSpaceDataToBuf(space_data);
-        av_packet_from_data(&this->packet, space_data, sizeof(space_data));
-        this->packet.stream_index = this->f_ctx->streams[1]->index;
-        int64_t time_stamp = get_timestamp(SeiEncoder::getFrameTime(), this->f_ctx->streams[1]->time_base);
-        this->packet.pts = time_stamp;
-        this->packet.dts = time_stamp;
-        ret |= av_write_frame(this->f_ctx, &this->packet);
-        if (ret != 0){
-            std::cout << "write gps frame failed" << std::endl;
-        }
-    }
+    // if (this->avi_has_gps_stream){
+    //     uint8_t space_data[SpaceDataReporter::SPACE_DATA_SIZE]; 
+    //     SpaceDataReporter::writeCurrentSpaceDataToBuf(space_data);
+    //     av_packet_from_data(&this->packet, space_data, sizeof(space_data));
+    //     this->packet.stream_index = this->f_ctx->streams[1]->index;
+    //     int64_t time_stamp = get_timestamp(SeiEncoder::getFrameTime(), this->f_ctx->streams[1]->time_base);
+    //     this->packet.pts = time_stamp;
+    //     this->packet.dts = time_stamp;
+    //     ret |= av_write_frame(this->f_ctx, &this->packet);
+    //     if (ret != 0){
+    //         std::cout << "write gps frame failed" << std::endl;
+    //     }
+    // }
 
 
     return ret;
@@ -141,9 +144,9 @@ int MediaRecorder::start_record(AVCodecID video_codec_id, int width, int height,
 
     createVideoStream(this->f_ctx, video_codec_id, width, height, framerate);
 
-    if (this->avi_has_gps_stream){
-        createGPSStream(this->f_ctx);
-    }
+    // if (this->avi_has_gps_stream){
+    //     createGPSStream(this->f_ctx);
+    // }
 
     ftime(&start_time);
 

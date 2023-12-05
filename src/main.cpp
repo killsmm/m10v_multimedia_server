@@ -16,6 +16,8 @@
 #include "gpio_ctrl.h"
 #include "boost/program_options.hpp"
 #include "configs.h"
+#include "gps_estone.h"
+#include "utils.h"
 
 //#define RTSP_TEST
 extern "C" {
@@ -39,6 +41,8 @@ static std::string jpeg_path = DEFUALT_JPEG_PATH;
 static std::string rtsp_channel_name = DEFAULT_RTSP_CHANNEL_NAME;
 static std::string ram_dcim_path = DEFAULT_RAM_DCIM_PATH;
 static std::string ram_dcim_url = "http://";
+static int flag = 0;
+static std::string received_msg;
 
 
 
@@ -50,68 +54,14 @@ static Communicator *communicator = NULL;
 static StreamReceiver *stream_receiver = NULL;
 static Live555Server *live555_server = NULL;
 
+using namespace utils;
 
 
 static void signal_handler(int signal) {
     app_abort = true;
 }
 
-static std::string getStrFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
-    json_object *tmp1;
-    json_object *tmp2;
-    if(!json_object_object_get_ex(json, level1.data(), &tmp1)){
-        std::cout << "cannot find cmd" << std::endl;
-        return "";
-    }
 
-    if(level2 == ""){
-        const char *result = json_object_get_string(tmp1);
-        return std::string(result, strlen(result));
-    }
-
-    if(!json_object_object_get_ex(tmp1, level2.data(), &tmp2)){
-        return "";
-    }
-
-    if(level3 == ""){
-        const char *result = json_object_get_string(tmp2);
-        return std::string(result, strlen(result));
-    }
-
-    if(!json_object_object_get_ex(tmp2, level3.data(), &tmp1)){
-        return "";
-    }
-
-    const char *result = json_object_get_string(tmp1);
-    return std::string(result, strlen(result));
-}
-
-static float getFloatFromJson(json_object *json, std::string level1, std::string level2, std::string level3){
-    json_object *tmp1;
-    json_object *tmp2;
-    if(!json_object_object_get_ex(json, level1.data(), &tmp1)){
-        std::cout << "cannot find cmd" << std::endl;
-        return 0;
-    }
-
-    if(level2 == ""){
-        return json_object_get_double(tmp1);
-    }
-
-    if(!json_object_object_get_ex(tmp1, level2.data(), &tmp2)){
-        return 0;
-    }
-
-    if(level3 == ""){
-        return json_object_get_double(tmp2);
-    }
-
-    if(!json_object_object_get_ex(tmp2, level3.data(), &tmp1)){
-        return 0;
-    }
-
-    return json_object_get_double(tmp1);
-}
 
 static void savedCallback(std::string path, void* data){
     std::cout << "jpeg saved : " << path << std::endl;
@@ -125,36 +75,6 @@ static void savedCallback(std::string path, void* data){
 
 namespace po = boost::program_options;
 
-static int string_to_float(const char* str, float *result){
-    char *tmp;
-    *result = std::strtof(str, &tmp);
-    if(tmp == str){
-        return -1;
-    }
-    return 0;
-}
-
-static int validate_gps(float latitude, float longitude, float altitude, float roll, float pitch, float yaw){
-    if (latitude < -90.0 || latitude > 90.0 || (abs(latitude) < 0.0001f && latitude != 0.0f)){
-        return -1;
-    }
-    if (longitude < -180.0 || longitude > 180.0 || (abs(longitude) < 0.0001f && longitude != 0.0f)){
-        return -1;
-    }
-    if (altitude < -1000.0 || altitude > 10000.0 || (abs(altitude) < 0.0001f && altitude != 0.0f)){
-        return -1;
-    }
-    if (roll < -180.0 || roll > 180.0 || (abs(roll) < 0.0001f && roll != 0.0f)){
-        return -1;
-    }
-    if (pitch < -180.0 || pitch > 180.0 || (abs(pitch) < 0.0001f && pitch != 0.0f)){
-        return -1;
-    }
-    if (yaw < -180.0 || yaw > 180.0 || (abs(yaw) < 0.0001f && yaw != 0.0f)){
-        return -1;
-    }
-    return 0;
-}
 
 static void handle_sub_msg(std::string msg){
     json_tokener *tok = json_tokener_new();
@@ -165,44 +85,12 @@ static void handle_sub_msg(std::string msg){
     }
 
     if(cmd == "GPS"){
-        float latitude = 0;
-        float longitude = 0;
-        float altitude = 0;
-        float roll = 0;
-        float pitch = 0;
-        float yaw = 0;
-        
-        if(string_to_float(getStrFromJson(json, "data", "location", "latitude").data(), &latitude)){
-            return;
-        }
-        if(string_to_float(getStrFromJson(json, "data", "location", "longitude").data(), &longitude)){
-            return;
-        }
-        if(string_to_float(getStrFromJson(json, "data", "location", "altitude").data(), &altitude)){
-            return;
-        }
-        if(string_to_float(getStrFromJson(json, "data", "angles", "roll").data(), &roll)){
-            return;
-        }
-        if(string_to_float(getStrFromJson(json, "data", "angles", "pitch").data(), &pitch)){
-            return;
-        }
-        if(string_to_float(getStrFromJson(json, "data", "angles", "yaw").data(), &yaw)){
-            return;
-        }
-
-        if(validate_gps(latitude, longitude, altitude, roll, pitch, yaw) != 0){
-            return;
-        }
-        SeiEncoder::setLocation(latitude, longitude, altitude);
-        SeiEncoder::setAngles(roll, pitch, yaw);
-        SeiEncoder::time_stamp = std::stol(getStrFromJson(json, "data", "time_stamp", ""));
+        GPSEstone::getInstance()->handleData(json);
     }else if(cmd == "DeviceStatus"){
         DeviceStatus::cmos_temperature = std::stof(getStrFromJson(json, "data", "cmos_temp", ""));
         DeviceStatus::input_voltage = std::stof(getStrFromJson(json, "data", "total_voltage", ""));
     }else if(cmd == "workStatus"){
         DeviceStatus::shutter_mode = getFloatFromJson(json, "data", "shutter_mode", "");
-        std::cout << "shutter_mode = " << DeviceStatus::shutter_mode << std::endl;
         std::string nr_str = getStrFromJson(json, "data", "noise_reduction_strength", "");
         if(nr_str != ""){
             DeviceStatus::noise_reduction_strength = std::stoi(nr_str);
@@ -333,9 +221,7 @@ static bool handle_cmd(std::string cmd_string){
     return true;
 }
 
-int main(int argc, char** argv){
-    int flag = 0;
-
+static void handle_params(int argc, char** argv){
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help,h", "produce help message")
@@ -377,13 +263,21 @@ int main(int argc, char** argv){
         rtsp_channel_name = vm["rtsp"].as<std::string>();
     }
 
+
+}
+
+int main(int argc, char** argv){
+    //install signal handler
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+    signal(SIGQUIT, signal_handler);
+    signal(SIGABRT, signal_handler);
     init_jpeg_feedback_gpio();
 
-    stream_receiver = new StreamReceiver();
-    communicator = new Communicator();
+    //parse command line
+    handle_params(argc, argv);
 
-    SeiEncoder::init();
-
+    //use mac address as serial number
     char serial_number[20] = {0};
     FILE *fp = popen("cat /sys/class/net/eth0/address", "r");
     if(fp != NULL){
@@ -391,6 +285,10 @@ int main(int argc, char** argv){
     }
     fclose(fp);
     DeviceStatus::serial_number.assign(serial_number);
+
+    //init modules
+    stream_receiver = new StreamReceiver();
+    communicator = new Communicator();
 
     if (flag & FLAG_JPEG) {
         std::cout << "parent path = " << jpeg_path << std::endl;
@@ -429,24 +327,19 @@ int main(int argc, char** argv){
         media_recorder = new MediaRecorder(video_path);
     }
 
+
     stream_receiver->start();
-
-    signal(SIGINT, signal_handler);
-    signal(SIGTERM, signal_handler);
-    signal(SIGQUIT, signal_handler);
-    signal(SIGABRT, signal_handler);
-
-    std::string received_msg;
     while (!app_abort)
     {
         // SeiEncoder::setLocation(rand() % 90, rand() % 90, rand() % 3000); // for test only
+        gps_data_t gps_data;
+        GPSEstone::getInstance()->getGPSData(&gps_data, 4300);
         if(communicator->receiveSub(received_msg)){
             handle_sub_msg(received_msg);
+            
         }
         communicator->receiveCmd(handle_cmd);
     }
-
-
     stream_receiver->stop();
     std::cout << "receive stoped" << std::endl;
     return 0;

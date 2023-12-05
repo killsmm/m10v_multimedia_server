@@ -1,5 +1,6 @@
 #include "live555_server.h"
 #include "sei_encoder.h"
+#include "gps_estone.h"
 
 Live555Server::Live555Server(std::string stream_name) {
     this->isStarted = false;
@@ -33,7 +34,9 @@ void Live555Server::onFrameReceivedCallback(void* address, std::uint64_t size, v
     if(this->subSession->ipcuFramedSource != NULL){
         int sei_length = 0;
         uint8_t sei_data[128];
-        SeiEncoder::getEncodedSei(&sei_length, sei_data);
+        struct gps_data_t gps_data;
+        GPSEstone::getInstance()->getGPSData(&gps_data);
+        SeiEncoder::encode(gps_data, sei_data, &sei_length);
         this->subSession->ipcuFramedSource->writeFrameToBuf((uint8_t *)address, size, sei_data, sei_length);
     }
 }

@@ -3,6 +3,47 @@
 #include <vector>
 #include <iostream>
 #include <pthread.h>
+#include "gps_estone.h"
+
+const uint8_t SEI_HEAD[23] = {0x00, 0x00, 0x00, 0x01, 0x06, 0x05, 0x28, 
+                        0x13, 0x9F, 0xB1, 0xA9, 0x44, 0x6A, 0x4D, 0xEC, 
+                        0x8C, 0xBF, 0x65, 0xB1, 0xE1, 0x2D, 0x2C, 0xFD};
+
+
+void SeiEncoder::encode(struct gps_data_t data, uint8_t *encoded_data, int *length){
+    int zero_counter = 0;
+    std::vector<uint8_t> a;
+
+    uint8_t tmp[24];
+
+    memcpy(tmp, &data.latitude , 4);
+    memcpy(tmp + 4, &data.longitude , 4);
+    memcpy(tmp + 8, &data.altitude , 4);
+    memcpy(tmp + 12, &data.pitch , 4);
+    memcpy(tmp + 16, &data.yaw , 4);
+    memcpy(tmp + 20, &data.roll , 4);
+
+    for(int i = 0; i < 24; i++){
+        //if tmp[i-1] and tmp[i] are both 0x00, then add 0x03
+        a.push_back(tmp[i]);
+        if(tmp[i] == 0x00){
+            zero_counter++;
+        }else{
+            zero_counter = 0;
+        }
+        if(zero_counter == 2){
+            a.push_back(0x03);
+            zero_counter = 0;
+        }
+    }
+
+    memcpy(encoded_data, SEI_HEAD, 23);
+    memcpy(encoded_data + 23, a.data(), a.size());
+    *length = a.size() + 23;
+
+}
+
+#if 0
 
 volatile float *SeiEncoder::longitude = nullptr;
 volatile float *SeiEncoder::latitude = nullptr;
@@ -13,15 +54,10 @@ volatile float *SeiEncoder::yaw = nullptr;
 uint8_t *SeiEncoder::encodedData = nullptr;
 uint8_t *SeiEncoder::addShellEncodedData = nullptr;
 volatile long SeiEncoder::time_stamp = 0;
-
-
-#include <pthread.h>
-
 static pthread_mutex_t mutex;
 
 
 void SeiEncoder::init() {
-    pthread_mutex_init(&mutex, NULL);
     if (SeiEncoder::encodedData == nullptr){
         SeiEncoder::encodedData = new uint8_t[SEI_BUF_LENGTH];
     }
@@ -51,7 +87,6 @@ void SeiEncoder::deinit(){
 }
 
 void SeiEncoder::getEncodedSei(int *length, uint8_t *data) {
-    pthread_mutex_lock(&mutex);
     int zero_counter = 0;
     std::vector<uint8_t> a;
     for(int i = 23; i < (23 + 24); i++){
@@ -71,24 +106,19 @@ void SeiEncoder::getEncodedSei(int *length, uint8_t *data) {
     memcpy(SeiEncoder::addShellEncodedData + 23, a.data(), a.size());
     *length = a.size() + 23;
     memcpy(data, SeiEncoder::addShellEncodedData, *length);
-    pthread_mutex_unlock(&mutex);
 }
 
 void SeiEncoder::setLocation(float latitude, float longitude, float altitude) {
     //add a pthread mutex here
-    pthread_mutex_lock(&mutex);
     memcpy(SeiEncoder::encodedData + 23, &longitude, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 4, &latitude, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 8, &altitude, 4); 
-    pthread_mutex_unlock(&mutex);
 }
 
 void SeiEncoder::setAngles(float roll, float pitch, float yaw) {
-    pthread_mutex_lock(&mutex);
     memcpy(SeiEncoder::encodedData + 23 + 12, &pitch, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 16, &yaw, 4); 
     memcpy(SeiEncoder::encodedData + 23 + 20, &roll, 4); 
-    pthread_mutex_unlock(&mutex);
 }
 
 float SeiEncoder::getLatitude(){
@@ -104,3 +134,4 @@ timeb SeiEncoder::getFrameTime(){
     t.time = SeiEncoder::time_stamp;
     return t;
 }
+#endif

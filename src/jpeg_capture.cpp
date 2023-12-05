@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include "gpio_ctrl.h"
+#include "gps_estone.h"
 // #include <arm_neon.h>
 extern "C"{
     #include "jpeg-data.h"
@@ -452,23 +453,24 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
     ExifContent *gps_content = exif_content_new();
     ExifRational tmp = {0};
 
-    printf("%f, %f, %f\n", *SeiEncoder::altitude, *SeiEncoder::latitude, *SeiEncoder::longitude);
+    struct gps_data_t gps_data;
+    GPSEstone::getInstance()->getGPSData(&gps_data);
 
     uint8_t altitude_data[exif_format_get_size(EXIF_FORMAT_RATIONAL)] = {0};
     tmp.denominator = 1000;
-    tmp.numerator = *SeiEncoder::altitude * 1000;
+    tmp.numerator = gps_data.altitude * 1000;
     exif_set_rational(altitude_data, byteOrder, tmp);
     new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_ALTITUDE, EXIF_FORMAT_RATIONAL, altitude_data, 1);
 
     uint8_t longitude_data[exif_format_get_size(EXIF_FORMAT_RATIONAL) * 3] = {0};
-    GPS_DEGREE longi_degree = float_to_degree(*SeiEncoder::longitude);
+    GPS_DEGREE longi_degree = float_to_degree(gps_data.longitude);
     exif_set_rational(longitude_data, byteOrder, ExifRational{.numerator = longi_degree.degrees, .denominator = 1});
     exif_set_rational(longitude_data + exif_format_get_size(EXIF_FORMAT_RATIONAL) * 1, byteOrder, ExifRational{.numerator = longi_degree.minutes, .denominator = 1});
     exif_set_rational(longitude_data + exif_format_get_size(EXIF_FORMAT_RATIONAL) * 2, byteOrder, ExifRational{.numerator = longi_degree.seconds, .denominator = 1});
     new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_LONGITUDE, EXIF_FORMAT_RATIONAL, longitude_data, 3);
 
     uint8_t latitude_data[exif_format_get_size(EXIF_FORMAT_RATIONAL) * 3] = {0};
-    GPS_DEGREE lati_degree = float_to_degree(*SeiEncoder::latitude);    
+    GPS_DEGREE lati_degree = float_to_degree(gps_data.latitude);    
     exif_set_rational(latitude_data, byteOrder, ExifRational{.numerator = lati_degree.degrees, .denominator = 1});
     exif_set_rational(latitude_data + exif_format_get_size(EXIF_FORMAT_RATIONAL) * 1, byteOrder, ExifRational{.numerator = lati_degree.minutes, .denominator = 1});
     exif_set_rational(latitude_data + exif_format_get_size(EXIF_FORMAT_RATIONAL) * 2, byteOrder, ExifRational{.numerator = lati_degree.seconds, .denominator = 1});
@@ -488,11 +490,11 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
 
     // ExifRational pitch, roll, yaw = {0};
     // pitch.denominator = 1000;
-    // pitch.numerator = *SeiEncoder::pitch * 1000;
+    // pitch.numerator = gps_data.pitch * 1000;
     // roll.denominator = 1000;
-    // roll.numerator = *SeiEncoder::roll * 1000;
+    // roll.numerator = gps_data.roll * 1000;
     // yaw.denominator = 1000;
-    // yaw.numerator = *SeiEncoder::yaw * 1000;
+    // yaw.numerator = gps_data.yaw * 1000;
      
     // new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_, EXIF_FORMAT_RATIONAL, reinterpret_cast<uint8_t *>(&pitch), 1);
     // new_exif_entry(gps_content, (ExifTag)EXIF_TAG_GPS_ROLL, EXIF_FORMAT_RATIONAL, reinterpret_cast<uint8_t *>(&roll), 1);
@@ -529,13 +531,15 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
                         "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.4.0\">\n"
                         "  <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
                         "    <rdf:Description rdf:about=\"\" xmlns:exif=\"http://ns.adobe.com/exif/1.0/\""
-                        "       share:Pitch=\"" + std::to_string(*SeiEncoder::yaw)  + "\""
-                        "       share:Roll=\"" + std::to_string(*SeiEncoder::pitch) + "\""
-                        "       share:Yaw=\"" + std::to_string(*SeiEncoder::roll) + "\""
+                        "       share:Pitch=\"" + std::to_string(gps_data.yaw)  + "\""
+                        "       share:Roll=\"" + std::to_string(gps_data.pitch) + "\""
+                        "       share:Yaw=\"" + std::to_string(gps_data.roll) + "\""
                         "    />\n"
                         "  </rdf:RDF>\n"
                         "</x:xmpmeta>\n<?xpacket end=\"w\"?>\n";
 */
+    
+
     std::string xmp_info = "<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\
     <x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"XMP Core 4.4.0-Exiv2\">\
     <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\
@@ -547,13 +551,13 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
             share:SN=\"P102D220026\"\
             share:SoftwareVersion=\"1.058\"\
             share:DewarpData=\"\"\
-            share:Lat=\"" + std::to_string(*SeiEncoder::latitude)  + "\"\
-            share:Lon=\"" + std::to_string(*SeiEncoder::longitude)  + "\"\
-            share:AbsAlt=\"" + std::to_string(*SeiEncoder::altitude)  + "\"\
+            share:Lat=\"" + std::to_string(gps_data.latitude)  + "\"\
+            share:Lon=\"" + std::to_string(gps_data.longitude)  + "\"\
+            share:AbsAlt=\"" + std::to_string(gps_data.altitude)  + "\"\
             share:RltAlt=\"0\"\
-            share:Pitch=\"" + std::to_string(*SeiEncoder::pitch)  + "\"\
-            share:Roll=\"" + std::to_string(*SeiEncoder::roll)  + "\"\
-            share:Yaw=\"" + std::to_string(*SeiEncoder::yaw)  + "\"\
+            share:Pitch=\"" + std::to_string(gps_data.pitch)  + "\"\
+            share:Roll=\"" + std::to_string(gps_data.roll)  + "\"\
+            share:Yaw=\"" + std::to_string(gps_data.yaw)  + "\"\
             share:RTK=\"50\"\
             share:Perspectives=\"LOWER\"\
             share:WbMode=\"daylight\"\
@@ -566,12 +570,12 @@ bool JpegCapture::saveJpegWithExif(void *address, std::uint64_t size, T_BF_DCF_I
             drone-dji:RtkStdLon=\"0.0\"\
             drone-dji:RtkStdLat=\"0.0\"\
             drone-dji:RtkStdHgt=\"0.0\"\
-            drone-dji:AbsoluteAltitude=\"" + std::to_string(*SeiEncoder::altitude)  + "\"\
-            drone-dji:GpsLatitude=\"" + std::to_string(*SeiEncoder::latitude)  + "\"\
-            drone-dji:GpsLongitude=\"" + std::to_string(*SeiEncoder::longitude)  + "\"\
-            drone-dji:GimbalRollDegree=\"" + std::to_string(*SeiEncoder::roll)  + "\"\
-            drone-dji:GimbalYawDegree=\"" + std::to_string(*SeiEncoder::yaw)  + "\"\
-            drone-dji:GimbalPitchDegree=\"" + std::to_string(*SeiEncoder::pitch)  + "\"\
+            drone-dji:AbsoluteAltitude=\"" + std::to_string(gps_data.altitude)  + "\"\
+            drone-dji:GpsLatitude=\"" + std::to_string(gps_data.latitude)  + "\"\
+            drone-dji:GpsLongitude=\"" + std::to_string(gps_data.longitude)  + "\"\
+            drone-dji:GimbalRollDegree=\"" + std::to_string(gps_data.roll)  + "\"\
+            drone-dji:GimbalYawDegree=\"" + std::to_string(gps_data.yaw)  + "\"\
+            drone-dji:GimbalPitchDegree=\"" + std::to_string(gps_data.pitch)  + "\"\
         />\
     </rdf:RDF>\
     </x:xmpmeta>\

@@ -8,22 +8,7 @@
 
 class SeiEncoder{
 public:
-    static void getEncodedSei(int *length, uint8_t *data);
-    static void init();
-    static void deinit();
-    static void setLocation(float latitude, float longitude, float altitude);
-    static void setAngles(float pan, float pitch, float roll);
-    static float getLatitude();
-    static timeb getFrameTime();
-    static volatile float *longitude;
-    static volatile float *latitude;
-    static volatile float *altitude;
-    static volatile float *roll;
-    static volatile float *pitch;
-    static volatile float *yaw; 
-    static volatile long time_stamp;
-    static uint8_t *encodedData;
-    static uint8_t *addShellEncodedData;
+    static void encode(struct gps_data_t data, uint8_t *encoded_data, int *length); 
 };
 
 #endif // !SEI_ENCODER_H
