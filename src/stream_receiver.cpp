@@ -21,7 +21,13 @@ static int cb(const struct cif_stream_send* p, void *d){
     {
         // printf("c->streamType = %08x, stream_id = %d\n", c->streamType, c->streamId);
         if (c->streamType == p->Sub_Command && p->stream_id == c->streamId){
-            c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size, (void *)&(p->media.j.exif));
+            if (c->streamType == E_CPU_IF_COMMAND_STREAM_JPG){
+                c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size, (void *)&(p->media.j.exif));
+            }else if (c->streamType == E_CPU_IF_COMMAND_STREAM_VIDEO){
+                c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size, (void *)&(p->media.v.sensor_timestamp));
+            }else{
+                c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size, nullptr);
+            }
         }
     }
     return ret;

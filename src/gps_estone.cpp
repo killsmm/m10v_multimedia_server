@@ -53,7 +53,7 @@ GPSEstone::~GPSEstone() {
 
 }
 
-int GPSEstone::getGPSData(gps_data_t *data, long time_stamp){
+int GPSEstone::getGPSData(gps_data_t *data, uint64_t time_stamp){
     //if time_stamp == 0, then get the latest data
     
     if(time_stamp == 0){

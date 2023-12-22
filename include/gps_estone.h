@@ -18,7 +18,7 @@ public:
     static GPSEstone *getInstance();
     int handleData(json_object *obj);
     int handleData(struct gps_data_t *data);
-    int getGPSData(gps_data_t *data, long time_stamp = 0);
+    int getGPSData(gps_data_t *data, uint64_t time_stamp = 0);
 private:
     GPSEstone();
     boost::circular_buffer<struct gps_data_t> *gps_data_buf;

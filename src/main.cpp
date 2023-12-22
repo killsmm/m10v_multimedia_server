@@ -332,8 +332,6 @@ int main(int argc, char** argv){
     while (!app_abort)
     {
         // SeiEncoder::setLocation(rand() % 90, rand() % 90, rand() % 3000); // for test only
-        gps_data_t gps_data;
-        GPSEstone::getInstance()->getGPSData(&gps_data, 4300);
         if(communicator->receiveSub(received_msg)){
             handle_sub_msg(received_msg);
             
