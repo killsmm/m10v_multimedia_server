@@ -10,7 +10,7 @@ struct gps_data_t {
     float roll;
     float pitch;
     float yaw;
-    long time_stamp;
+    uint64_t time_stamp;
 };
 
 class GPSEstone{

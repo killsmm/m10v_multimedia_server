@@ -123,7 +123,7 @@ int GPSEstone::handleData(json_object *json) {
             return -1;
         }
 
-        long time_stamp = std::stol(getStrFromJson(json, "data", "time_stamp", ""));
+        uint64_t time_stamp = std::stoull(getStrFromJson(json, "data", "time_stamp", ""));
         this->gps_data_buf->push_back({latitude, longitude, altitude, roll, pitch, yaw, time_stamp});
         return 0;
 }

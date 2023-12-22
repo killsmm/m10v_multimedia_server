@@ -35,6 +35,7 @@ void Live555Server::onFrameReceivedCallback(void* address, std::uint64_t size, v
         int sei_length = 0;
         uint8_t sei_data[128];
         struct gps_data_t gps_data;
+        //TODO get the time stamp from the frame
         GPSEstone::getInstance()->getGPSData(&gps_data);
         SeiEncoder::encode(gps_data, sei_data, &sei_length);
         this->subSession->ipcuFramedSource->writeFrameToBuf((uint8_t *)address, size, sei_data, sei_length);
