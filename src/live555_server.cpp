@@ -39,8 +39,9 @@ void Live555Server::onFrameReceivedCallback(void* address, std::uint64_t size, v
         //TODO get the time stamp from the frame
         uint64_t frame_time_stamp = 0; 
         if(extra_data != nullptr){
-            frame_time_stamp = ((*(cif_sensor_timestamp *)extra_data).eof - ((*(cif_sensor_timestamp *)extra_data)).sof)/2;
-            printf("sof = %ld eof = %ld frame_time_stamp = %ld\n", ((*(cif_sensor_timestamp *)extra_data)).sof, ((*(cif_sensor_timestamp *)extra_data)).eof, frame_time_stamp);
+            frame_time_stamp = (((uint32_t *)extra_data)[1] << 32 | ((uint32_t *)extra_data)[0]) / 90;
+            //print extra data and frame time stamp
+            printf("extra_data[0] = %d, extra_data[1] = %d, frame_time_stamp = %lld\n", ((uint32_t *)extra_data)[0], ((uint32_t *)extra_data)[1], frame_time_stamp);
         }
         GPSEstone::getInstance()->getGPSData(&gps_data, frame_time_stamp);
         SeiEncoder::encode(gps_data, sei_data, &sei_length);

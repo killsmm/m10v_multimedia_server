@@ -23,8 +23,9 @@ static int cb(const struct cif_stream_send* p, void *d){
         if (c->streamType == p->Sub_Command && p->stream_id == c->streamId){
             if (c->streamType == E_CPU_IF_COMMAND_STREAM_JPG){
                 c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size, (void *)&(p->media.j.exif));
+                
             }else if (c->streamType == E_CPU_IF_COMMAND_STREAM_VIDEO){
-                c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size, (void *)&(p->media.v.sensor_timestamp));
+                c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size, (void *)&(p->media.v.sample_pts[0]));
             }else{
                 c->fConsumer->onFrameReceivedCallback((void*)(p->sample_address), p->sample_size, nullptr);
             }
