@@ -2,6 +2,7 @@
 #include "sei_encoder.h"
 #include "gps_estone.h"
 #include "cif_stream.h"
+#include <chrono>
 
 Live555Server::Live555Server(std::string stream_name) {
     this->isStarted = false;
@@ -36,13 +37,11 @@ void Live555Server::onFrameReceivedCallback(void* address, std::uint64_t size, v
         int sei_length = 0;
         uint8_t sei_data[128];
         struct gps_data_t gps_data;
-        //TODO get the time stamp from the frame
-        uint64_t frame_time_stamp = 0; 
-        if(extra_data != nullptr){
-            frame_time_stamp = (((uint32_t *)extra_data)[1] << 32 | ((uint32_t *)extra_data)[0]) / 90;
-            //print extra data and frame time stamp
-            printf("extra_data[0] = %d, extra_data[1] = %d, frame_time_stamp = %lld\n", ((uint32_t *)extra_data)[0], ((uint32_t *)extra_data)[1], frame_time_stamp);
-        }
+        //TODO get the milisecond time stamp from the system
+        uint64_t frame_time_stamp = 0;
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime.time_since_epoch());
+        frame_time_stamp = ms.count() - GPSEstone::getInstance()->getTimingOffset();
         GPSEstone::getInstance()->getGPSData(&gps_data, frame_time_stamp);
         SeiEncoder::encode(gps_data, sei_data, &sei_length);
         this->subSession->ipcuFramedSource->writeFrameToBuf((uint8_t *)address, size, sei_data, sei_length);

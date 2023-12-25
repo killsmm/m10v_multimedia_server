@@ -230,7 +230,8 @@ static void handle_params(int argc, char** argv){
         ("mjpeg,m", "enable MJPEG mode")
         ("jpeg,j", po::value<std::string>(), "set JPEG path")
         ("ram_dcim_url,b", po::value<std::string>(), "set RAM DCIM URL")
-        ("rtsp,s", po::value<std::string>(), "set RTSP channel name");
+        ("rtsp,s", po::value<std::string>(), "set RTSP channel name")
+        ("gps_timing_offset,o", po::value<int>(), "set GPS timing offset");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -263,6 +264,10 @@ static void handle_params(int argc, char** argv){
         rtsp_channel_name = vm["rtsp"].as<std::string>();
     }
 
+    if (vm.count("gps_timing_offset")) {
+        int offset = vm["gps_timing_offset"].as<int>();
+        GPSEstone::getInstance()->setTimingOffset(offset);
+    }
 
 }
 

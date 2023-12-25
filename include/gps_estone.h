@@ -19,8 +19,11 @@ public:
     int handleData(json_object *obj);
     int handleData(struct gps_data_t *data);
     int getGPSData(gps_data_t *data, uint64_t time_stamp = 0);
+    void setTimingOffset(int offset);
+    int getTimingOffset();
 private:
     GPSEstone();
+    int timing_offset;
     boost::circular_buffer<struct gps_data_t> *gps_data_buf;
     ~GPSEstone();
 };

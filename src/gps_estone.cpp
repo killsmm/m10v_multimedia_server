@@ -38,7 +38,8 @@ static int validate_gps(float latitude, float longitude, float altitude, float r
 }
 
 GPSEstone::GPSEstone() {
-    gps_data_buf = new boost::circular_buffer<struct gps_data_t>(GPS_BUF_LENGTH);
+    this->gps_data_buf = new boost::circular_buffer<struct gps_data_t>(GPS_BUF_LENGTH);
+    this->timing_offset = 0;
 }
 
 GPSEstone* GPSEstone::getInstance() {
@@ -51,6 +52,14 @@ GPSEstone* GPSEstone::getInstance() {
 
 GPSEstone::~GPSEstone() {
 
+}
+
+void GPSEstone::setTimingOffset(int offset){
+    this->timing_offset = offset;
+}
+
+int GPSEstone::getTimingOffset(){
+    return this->timing_offset;
 }
 
 int GPSEstone::getGPSData(gps_data_t *data, uint64_t time_stamp){
