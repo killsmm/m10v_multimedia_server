@@ -16,8 +16,8 @@ void SeiEncoder::encode(struct gps_data_t data, uint8_t *encoded_data, int *leng
 
     uint8_t tmp[24];
 
-    memcpy(tmp, &data.latitude , 4);
-    memcpy(tmp + 4, &data.longitude , 4);
+    memcpy(tmp, &data.longitude , 4);
+    memcpy(tmp + 4, &data.latitude , 4);
     memcpy(tmp + 8, &data.altitude , 4);
     memcpy(tmp + 12, &data.pitch , 4);
     memcpy(tmp + 16, &data.yaw , 4);
