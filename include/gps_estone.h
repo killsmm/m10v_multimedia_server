@@ -1,7 +1,7 @@
 #include "json-c/json.h"
 #include "boost/circular_buffer.hpp"
 
-#define GPS_BUF_LENGTH 64
+#define GPS_BUF_LENGTH 512
 
 struct gps_data_t {
     float latitude;
