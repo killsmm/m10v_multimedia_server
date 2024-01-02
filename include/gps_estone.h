@@ -4,9 +4,9 @@
 #define GPS_BUF_LENGTH 512
 
 struct gps_data_t {
-    float latitude;
-    float longitude;
-    float altitude;
+    int32_t latitude;
+    int32_t longitude;
+    int32_t altitude;
     float roll;
     float pitch;
     float yaw;

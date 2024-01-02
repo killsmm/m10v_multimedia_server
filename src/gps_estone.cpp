@@ -15,25 +15,17 @@ static int string_to_float(const char* str, float *result){
     return 0;
 }
 
-static int validate_gps(float latitude, float longitude, float altitude, float roll, float pitch, float yaw){
-    if (latitude < -90.0 || latitude > 90.0 || (fabs(latitude) < 0.0001f && latitude != 0.0f)){
+static int string_to_int(const char* str, int32_t *result){
+    char *tmp;
+    *result = std::strtol(str, &tmp, 10);
+    if(tmp == str){
         return -1;
     }
-    if (longitude < -180.0 || longitude > 180.0 || (fabs(longitude) < 0.0001f && longitude != 0.0f)){
-        return -1;
-    }
-    if (altitude < -1000.0 || altitude > 10000.0 || (fabs(altitude) < 0.0001f && altitude != 0.0f)){
-        return -1;
-    }
-    if (roll < -180.0 || roll > 180.0 || (fabs(roll) < 0.0001f && roll != 0.0f)){
-        return -1;
-    }
-    if (pitch < -180.0 || pitch > 180.0 || (fabs(pitch) < 0.0001f && pitch != 0.0f)){
-        return -1;
-    }
-    if (yaw < -180.0 || yaw > 180.0 || (fabs(yaw) < 0.0001f && yaw != 0.0f)){
-        return -1;
-    }
+    return 0;
+}
+
+static int validate_gps(int32_t latitude, int32_t longitude, int32_t altitude, float roll, float pitch, float yaw){
+    //TODO
     return 0;
 }
 
@@ -102,20 +94,20 @@ int GPSEstone::getGPSData(gps_data_t *data, uint64_t time_stamp){
 
 
 int GPSEstone::handleData(json_object *json) {
-        float latitude = 0;
-        float longitude = 0;
-        float altitude = 0;
+        int32_t latitude = 0;
+        int32_t longitude = 0;
+        int32_t altitude = 0;
         float roll = 0;
         float pitch = 0;
         float yaw = 0;
         
-        if(string_to_float(getStrFromJson(json, "data", "location", "latitude").data(), &latitude)){
+        if(string_to_int(getStrFromJson(json, "data", "location", "latitude").data(), &latitude)){
             return -1;
         }
-        if(string_to_float(getStrFromJson(json, "data", "location", "longitude").data(), &longitude)){
+        if(string_to_int(getStrFromJson(json, "data", "location", "longitude").data(), &longitude)){
             return -1;
         }
-        if(string_to_float(getStrFromJson(json, "data", "location", "altitude").data(), &altitude)){
+        if(string_to_int(getStrFromJson(json, "data", "location", "altitude").data(), &altitude)){
             return -1;
         }
         if(string_to_float(getStrFromJson(json, "data", "angles", "roll").data(), &roll)){
