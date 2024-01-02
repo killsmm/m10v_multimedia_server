@@ -56,7 +56,7 @@ int GPSEstone::getTimingOffset(){
 
 int GPSEstone::getGPSData(gps_data_t *data, uint64_t time_stamp){
     //if time_stamp == 0, then get the latest data
-    
+    std::cout << "getGPSData request time_stamp = " << time_stamp << std::endl;
     if(time_stamp == 0){
         if(gps_data_buf->empty()){
             return -1;
@@ -64,31 +64,26 @@ int GPSEstone::getGPSData(gps_data_t *data, uint64_t time_stamp){
         *data = gps_data_buf->back();
         return 0;
     }else{
-        //if time_stamp != 0, then get the data with the nearest time_stamp
+        //gps_data_buf is a circular buffer , time_stamp is always increasing,  return the closest data
         if(gps_data_buf->empty()){
             return -1;
         }
-        int i = 0;
-        for(; i < gps_data_buf->size(); i++){
-            if(gps_data_buf->at(i).time_stamp > time_stamp){
+        std::cout << "gps_data_buf back time_stamp = " << gps_data_buf->back().time_stamp << std::endl;
+        if(time_stamp < gps_data_buf->front().time_stamp){
+            return -1;
+        }
+        if(time_stamp > gps_data_buf->back().time_stamp){
+            *data = gps_data_buf->back();
+            return 0;
+        }
+        for(auto it = gps_data_buf->begin(); it != gps_data_buf->end(); it++){
+            if(time_stamp < it->time_stamp){
+                *data = *(it - 1);
                 break;
             }
         }
-        if(i == 0){
-            *data = gps_data_buf->front();
-            return 0;
-        }else if(i == gps_data_buf->size()){
-            *data = gps_data_buf->back();
-            return 0;
-        }else{
-            if(time_stamp - gps_data_buf->at(i-1).time_stamp < gps_data_buf->at(i).time_stamp - time_stamp){
-                *data = gps_data_buf->at(i-1);
-                return 0;
-            }else{
-                *data = gps_data_buf->at(i);
-                return 0;
-            }
-        }
+        std::cout << "data->time_stamp = " << data->time_stamp << std::endl;
+        return 0;
     }
 }
 
