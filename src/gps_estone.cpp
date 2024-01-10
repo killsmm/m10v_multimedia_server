@@ -80,6 +80,12 @@ int GPSEstone::getGPSData(gps_data_t *data, uint64_t time_stamp){
             if(time_stamp < it->time_stamp){
                 *data = *(it - 1);
                 break;
+            }else if(time_stamp == it->time_stamp){
+                *data = *it;
+                break;
+            }else if (it == gps_data_buf->end() - 1){
+                *data = *it;
+                break;
             }
         }
         std::cout << "data->time_stamp = " << data->time_stamp << std::endl;
