@@ -56,14 +56,15 @@ int GPSEstone::getTimingOffset(){
 }
 
 int GPSEstone::getGPSData(gps_data_t *data, uint64_t time_stamp){
+    lock_guard<mutex> lock(this->dataMutex);
     if(gps_data_buf->empty()){
         syslog(LOG_WARNING, "The gps_data_buf is empty and return -1");
+        lock_guard<std::mutex> unlock(this->dataMutex);
         return -1;
     }
-
+    
     if(time_stamp == 0){
         *data = gps_data_buf->back();
-        return 0;
     }else{
         for(auto it = gps_data_buf->begin(); it != gps_data_buf->end(); it++){
             if(time_stamp < it->time_stamp){
@@ -80,8 +81,9 @@ int GPSEstone::getGPSData(gps_data_t *data, uint64_t time_stamp){
                 break;
             }
         }
-        return 0;
     }
+    lock_guard<mutex> unlock(this->dataMutex);
+    return 0;
 }
 
 
@@ -116,10 +118,12 @@ int GPSEstone::handleData(json_object *json) {
             return -1;
         }
 
-        uint64_t time_stamp = std::stoull(getStrFromJson(json, "data", "time_stamp", ""));
+        uint64_t time_stamp = stoull(getStrFromJson(json, "data", "time_stamp", ""));
+        lock_guard<mutex> lock(this->dataMutex);
         if (!this->gps_data_buf->empty() &&  time_stamp - this->gps_data_buf->back().time_stamp > 1000){
             syslog(LOG_ERR, "The time stamp is not continuous, got last time stamp %lld ms ago", time_stamp - this->gps_data_buf->back().time_stamp);
         }
         this->gps_data_buf->push_back({latitude, longitude, altitude, roll, pitch, yaw, time_stamp});
+        lock_guard<mutex> unlock(this->dataMutex);
         return 0;
 }

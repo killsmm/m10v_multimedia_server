@@ -1,5 +1,6 @@
 #include "json-c/json.h"
 #include "boost/circular_buffer.hpp"
+#include <mutex>
 
 #define GPS_BUF_LENGTH 512
 
@@ -23,6 +24,7 @@ public:
     int getTimingOffset();
 private:
     GPSEstone();
+    std::mutex dataMutex;
     int timing_offset;
     boost::circular_buffer<struct gps_data_t> *gps_data_buf;
     ~GPSEstone();
