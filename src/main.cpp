@@ -18,6 +18,7 @@
 #include "configs.h"
 #include "gps_estone.h"
 #include "utils.h"
+#include <syslog.h>
 
 //#define RTSP_TEST
 extern "C" {
@@ -27,7 +28,6 @@ extern "C" {
 }
 
 #define FEEDBACK_GPIO 203
-
 #define FLAG_DEBUG (1)
 #define FLAG_VIDEO (1 << 1)
 #define FLAG_MJPEG (1 << 2)
@@ -43,8 +43,6 @@ static std::string ram_dcim_path = DEFAULT_RAM_DCIM_PATH;
 static std::string ram_dcim_url = "http://";
 static int flag = 0;
 static std::string received_msg;
-
-
 
 static YuvCapture *yuv_capture = NULL;
 static RawImgCapture *raw_capture = NULL;
@@ -73,7 +71,6 @@ static void savedCallback(std::string path, void* data){
 };
 
 
-namespace po = boost::program_options;
 
 
 static void handle_sub_msg(std::string msg){
@@ -222,6 +219,7 @@ static bool handle_cmd(std::string cmd_string){
 }
 
 static void handle_params(int argc, char** argv){
+    namespace po = boost::program_options;
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help,h", "produce help message")
@@ -332,6 +330,13 @@ int main(int argc, char** argv){
         media_recorder = new MediaRecorder(video_path);
     }
 
+    if (flag & FLAG_DEBUG) {
+        std::cout << "debug mode with openlog" << std::endl;
+        //open syslog
+        openlog("multimedia_server", LOG_CONS | LOG_PID, LOG_USER);
+        syslog(LOG_INFO, "multimedia_server start");
+    }
+
 
     stream_receiver->start();
     while (!app_abort)
@@ -343,7 +348,13 @@ int main(int argc, char** argv){
         }
         communicator->receiveCmd(handle_cmd);
     }
-    stream_receiver->stop();
-    std::cout << "receive stoped" << std::endl;
-    return 0;
+    int ret = stream_receiver->stop();
+    if (ret != 0) {
+        syslog(LOG_ERR, "stream_receiver->stop() failed (%d)", ret);
+    }
+    syslog(LOG_INFO, "multimedia_server stop");
+    if (flag & FLAG_DEBUG) {
+        closelog();
+    }
+    return ret;
 }

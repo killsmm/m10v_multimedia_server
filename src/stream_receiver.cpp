@@ -80,5 +80,5 @@ int StreamReceiver::start() {
 }
 
 int StreamReceiver::stop() {
-    Stream_ipcu_ch_close();
+    return Stream_ipcu_ch_close();
 }

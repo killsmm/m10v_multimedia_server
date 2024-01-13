@@ -2,6 +2,7 @@
 #include "utils.h"
 #include "gps_estone.h"
 #include <cmath>
+#include <syslog.h>
 
 using namespace std;
 using namespace utils;
@@ -55,40 +56,30 @@ int GPSEstone::getTimingOffset(){
 }
 
 int GPSEstone::getGPSData(gps_data_t *data, uint64_t time_stamp){
-    //if time_stamp == 0, then get the latest data
-    std::cout << "getGPSData request time_stamp = " << time_stamp << std::endl;
+    if(gps_data_buf->empty()){
+        syslog(LOG_WARNING, "The gps_data_buf is empty and return -1");
+        return -1;
+    }
+
     if(time_stamp == 0){
-        if(gps_data_buf->empty()){
-            return -1;
-        }
         *data = gps_data_buf->back();
         return 0;
     }else{
-        //gps_data_buf is a circular buffer , time_stamp is always increasing,  return the closest data
-        if(gps_data_buf->empty()){
-            return -1;
-        }
-        std::cout << "gps_data_buf back time_stamp = " << gps_data_buf->back().time_stamp << std::endl;
-        if(time_stamp < gps_data_buf->front().time_stamp){
-            return -1;
-        }
-        if(time_stamp > gps_data_buf->back().time_stamp){
-            *data = gps_data_buf->back();
-            return 0;
-        }
         for(auto it = gps_data_buf->begin(); it != gps_data_buf->end(); it++){
             if(time_stamp < it->time_stamp){
+                syslog(LOG_INFO, "The time_stamp(%lld) is between %lld and %lld", time_stamp, (it - 1)->time_stamp, it->time_stamp);
                 *data = *(it - 1);
                 break;
             }else if(time_stamp == it->time_stamp){
+                syslog(LOG_INFO, "The time_stamp(%lld) is equal to %lld", time_stamp, it->time_stamp);
                 *data = *it;
                 break;
             }else if (it == gps_data_buf->end() - 1){
+                syslog(LOG_WARNING, "The time_stamp(%lld) is too large and return the last data(%lld)", time_stamp, it->time_stamp);
                 *data = *it;
                 break;
             }
         }
-        std::cout << "data->time_stamp = " << data->time_stamp << std::endl;
         return 0;
     }
 }
@@ -126,6 +117,9 @@ int GPSEstone::handleData(json_object *json) {
         }
 
         uint64_t time_stamp = std::stoull(getStrFromJson(json, "data", "time_stamp", ""));
+        if (!this->gps_data_buf->empty() &&  time_stamp - this->gps_data_buf->back().time_stamp > 1000){
+            syslog(LOG_ERR, "The time stamp is not continuous, got last time stamp %lld ms ago", time_stamp - this->gps_data_buf->back().time_stamp);
+        }
         this->gps_data_buf->push_back({latitude, longitude, altitude, roll, pitch, yaw, time_stamp});
         return 0;
 }
