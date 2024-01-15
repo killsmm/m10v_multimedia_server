@@ -16,7 +16,10 @@ Communicator::Communicator(std::string pub_url, std::string gps_url, std::string
 
 
 Communicator::~Communicator() {
-    
+    publisher.close();
+    gpsDataSubscriber.close();
+    cmd_server.close();
+    workStatusSubscriber.close();
 }
 
 

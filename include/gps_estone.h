@@ -2,7 +2,7 @@
 #include "boost/circular_buffer.hpp"
 #include <mutex>
 
-#define GPS_BUF_LENGTH 512
+#define GPS_BUF_LENGTH 64
 
 struct gps_data_t {
     int32_t latitude;
