@@ -11,8 +11,11 @@
 
 class IPCU555FramedSource : public FramedSource{
 private:
+  static unsigned referenceCount; // used to count how many instances of this class currently exist
+private:
     void deliverFrame();
     IPCU555FramedSource(UsageEnvironment& env, void *data);
+    ~IPCU555FramedSource();
     uint8_t *frame_buffer;
     uint64_t frame_size;
     static EventTriggerId eventTriggerId;

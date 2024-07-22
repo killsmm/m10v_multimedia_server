@@ -17,6 +17,9 @@ int IPCU555FramedSource::writeFrameToBuf(uint8_t *addr, uint64_t size, uint8_t *
     if (size > BUFFER_SIZE) {
         return -1;
     }
+    if (referenceCount == 0) {
+        return -1;
+    }
     if (pthread_mutex_trylock(&lock) != 0){
         std::cout << "writeFrameToBuf trylock failed\n" << std::endl;
         return -1;
@@ -31,15 +34,35 @@ int IPCU555FramedSource::writeFrameToBuf(uint8_t *addr, uint64_t size, uint8_t *
 
     return 0;
 }
-
+unsigned IPCU555FramedSource::referenceCount = 0;
 IPCU555FramedSource::IPCU555FramedSource(UsageEnvironment& env, void *data) 
         : FramedSource(env)
 {
-
+    // printf("IPCU555FramedSource \r\n");
     this->frame_buffer = new uint8_t[BUFFER_SIZE];
     this->frame_size = 0;
-    IPCU555FramedSource::eventTriggerId = env.taskScheduler().createEventTrigger(deliverFrame0);
+    if (eventTriggerId == 0) {
+        IPCU555FramedSource::eventTriggerId = env.taskScheduler().createEventTrigger(deliverFrame0);
+    }
     this->taskScheduler = &env.taskScheduler();
+    ++referenceCount;
+}
+
+IPCU555FramedSource::~IPCU555FramedSource() 
+{
+    
+    --referenceCount;
+   
+    if (referenceCount == 0) {
+        // Any global 'destruction' (i.e., resetting) of the device would be done here:
+        //%%% TO BE WRITTEN %%%
+
+        // Reclaim our 'event trigger'
+        envir().taskScheduler().deleteEventTrigger(eventTriggerId);
+        eventTriggerId = 0;
+        delete[]frame_buffer;
+        printf("free frame_buffer \r\n"); 
+    }
 }
 
 void IPCU555FramedSource::signalNewFrameData()
