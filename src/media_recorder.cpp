@@ -68,7 +68,13 @@ int MediaRecorder::write_one_frame(uint8_t *addr, unsigned int size) {
     int sei_length = 0;
     uint8_t sei_data[128];
     gps_data_t gps_data;
-    GPSEstone::getInstance()->getGPSData(&gps_data);
+    /* 添加时间戳 */
+    uint64_t frame_time_stamp = 0;
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime.time_since_epoch());
+    frame_time_stamp = ms.count() - GPSEstone::getInstance()->getTimingOffset();
+    
+    GPSEstone::getInstance()->getGPSData(&gps_data, frame_time_stamp);
     SeiEncoder::encode(gps_data, sei_data, &sei_length);
 
     if(sei_length == 0 || sei_data == nullptr){

@@ -26,6 +26,8 @@ private:
     GPSEstone();
     std::mutex dataMutex;
     int timing_offset;
+    bool gps_data_rcv;
+    uint64_t gps_rcv_tmout;
     boost::circular_buffer<struct gps_data_t> *gps_data_buf;
     ~GPSEstone();
 };

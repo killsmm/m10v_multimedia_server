@@ -78,6 +78,24 @@ int GPSEstone::getGPSData(gps_data_t *data, uint64_t time_stamp){
             }else if (it == gps_data_buf->end() - 1){
                 syslog(LOG_WARNING, "The time_stamp(%lld) is too large and return the last data(%lld)", time_stamp, it->time_stamp);
                 *data = *it;
+                /* 判断GPS断开连接，gps清零 */
+                uint64_t frame_time_stamp = 0;
+                auto currentTime = std::chrono::high_resolution_clock::now();
+                std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime.time_since_epoch());
+                frame_time_stamp = ms.count();
+                if(frame_time_stamp > this->gps_rcv_tmout)
+                {
+                    if((frame_time_stamp - this->gps_rcv_tmout) > 2*1000)
+                    {
+                        data->altitude = 0xffffffff;
+                        data->latitude = 0xffffffff;
+                        data->longitude = 0xffffffff;
+                        data->pitch = 0xffffffff;
+                        data->roll = 0xffffffff;
+                        data->yaw = 0xffffffff;
+                    }
+                }
+                /**************************/
                 break;
             }
         }
@@ -122,6 +140,11 @@ int GPSEstone::handleData(json_object *json) {
         if (!this->gps_data_buf->empty() &&  time_stamp - this->gps_data_buf->back().time_stamp > 1000){
             syslog(LOG_ERR, "The time stamp is not continuous, got last time stamp %lld ms ago", time_stamp - this->gps_data_buf->back().time_stamp);
         }
+        /* 获取当前时间戳，用于判断GPS数据超时 */
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime.time_since_epoch());
+        this->gps_rcv_tmout = ms.count();
+        /*********************************** */
         this->gps_data_buf->push_back({latitude, longitude, altitude, roll, pitch, yaw, time_stamp});
         return 0;
 }
